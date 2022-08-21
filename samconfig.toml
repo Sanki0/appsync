@@ -1,0 +1,10 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "pruebas-sanki0"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-14pg44f3l6mfp"
+s3_prefix = "pruebas-sanki0"
+region = "us-east-1"
+capabilities = "CAPABILITY_IAM"
+image_repositories = []

@@ -1,0 +1,31 @@
+type Student{
+  name: String,
+  dni: String!,
+  address: String,
+}
+
+input StudentInput {
+  name: String,
+  dni: String!,
+  address: String,
+}
+
+type StudentsOutput{
+  items:[Student]
+}
+
+type Query{
+  getStudents: [Student],
+ 
+  getStudent(dni: String!): Student,
+
+}
+
+type Mutation{
+  createStudent(student: StudentInput): Student,
+  
+  updateStudent(student: StudentInput): Student,
+  
+  deleteStudent(dni: String!): Student,
+
+}

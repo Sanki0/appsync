@@ -1,0 +1,186 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  pruebas-sanki0
+
+Resources:
+  AppSyncServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - appsync.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: AllowAccessForAppsyncResolvers
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - states:StartSyncExecution
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                Resource: 
+                  - !GetAtt BD.Arn
+                  - !Sub 
+                    - "${Table}/index/*"
+                    - { Table: !GetAtt BD.Arn }
+              - Effect: Allow
+                Action:
+                - lambda:invokeFunction
+                Resource: 
+                  - !GetAtt GetStudentFunction.Arn
+
+
+  AppSyncApi:
+    DependsOn: AppSyncServiceRole
+    Type: AWS::AppSync::GraphQLApi
+    Description: "The GraphQL API for the single table App"
+    Properties:
+      Name: ofviOffi
+      AuthenticationType: API_KEY
+
+ # API Key for external access
+  AppSyncApiKey:
+    Type: AWS::AppSync::ApiKey
+    Properties: 
+      ApiId: !GetAtt AppSyncApi.ApiId
+
+   # AppSync Schema
+  AppSyncSchema:
+    Type: AWS::AppSync::GraphQLSchema
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      DefinitionS3Location: "./schema.graphql"
+
+ # AppSync Data Source for DynamoDB
+  AppSyncTableDataSource:
+    Type: AWS::AppSync::DataSource
+    Properties:
+      Name: SingleTableStudents
+      ApiId: !GetAtt AppSyncApi.ApiId
+      Description: "The Single Table AppSync Data Source"
+      Type: AMAZON_DYNAMODB
+      ServiceRoleArn: !GetAtt AppSyncServiceRole.Arn
+      DynamoDBConfig:
+        TableName: !Ref BD
+        AwsRegion: !Sub ${AWS::Region}
+
+
+
+
+
+ # Resolver: Query - getStudent
+  GetStudentsResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      TypeName: Query
+      FieldName: getStudent
+      DataSourceName: !GetAtt AppSyncTableDataSource.Name
+      RequestMappingTemplate: >
+        {
+          "version": "2017-02-28",
+          "operation": "GetItem",
+          "key": {
+            "id": $util.dynamodb.toDynamoDBJson("STUDENT"),
+            "sort": $util.dynamodb.toDynamoDBJson($context.args.dni)
+          }
+        }
+      ResponseMappingTemplate: >
+        {
+            "name": $util.toJson($ctx.result['name']),
+            "dni": $util.toJson($ctx.result['dni']),
+            "address": $util.toJson($ctx.result['address']),
+        }
+
+ # Resolver: Query - getStudents
+  GetStudentsResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      TypeName: Query
+      FieldName: getStudents
+      DataSourceName: !GetAtt AppSyncTableDataSource.Name
+      RequestMappingTemplate: >
+        {
+          "version": "2017-02-28",
+          "operation": "Query",
+          "query": {
+            "expression": "id = :id", 
+            "expressionValues":	{              
+        	    ":id" : $util.dynamodb.toDynamoDBJson("STUDENT")
+            }
+          }
+        }
+      ResponseMappingTemplate: >
+        {
+          "items": [
+                      #foreach($item in $ctx.result.items)
+                        {
+                            "dni":$util.toJson($item['sort']),
+                            "name": $util.toJson($item['name']),
+                            "address": $util.toJson($item['address'])
+                        }#if($foreach.hasNext),#end
+                        #end
+                    ]
+        }
+
+  # DynamoDB
+  BD:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Student
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: sort
+          AttributeType: S        
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+        - AttributeName: sort
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+
+  # Functions
+  GetStudentFunction:
+    Type: 'AWS::Serverless::Function'
+    # Metadata:
+    #   BuildMethod: makefile
+    Properties:
+      Handler: handler
+      Runtime: go1.x
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DB
+      Environment:
+        Variables:
+          GREETINGS_TABLE: !Ref DB
+
+
+
+Outputs:
+  APIKey:
+    Description: API Key
+    Value: !GetAtt AppSyncApiKey.ApiKey
+  GraphQLApiEndpoint:
+    Description: The URL to the GraphQL Endpoint
+    Value: !GetAtt AppSyncApi.GraphQLUrl
+  GraphQLApiId:
+    Description: The API ID of the GraphQL API
+    Value: !GetAtt AppSyncApi.ApiId         
