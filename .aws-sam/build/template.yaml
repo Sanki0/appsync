@@ -23,9 +23,6 @@ Resources:
           Statement:
           - Effect: Allow
             Action:
-            - states:StartSyncExecution
-          - Effect: Allow
-            Action:
             - dynamodb:GetItem
             - dynamodb:PutItem
             - dynamodb:DeleteItem
@@ -34,27 +31,20 @@ Resources:
             - dynamodb:Scan
             Resource:
             - Fn::GetAtt:
-              - BD
+              - DB
               - Arn
             - Fn::Sub:
               - ${Table}/index/*
               - Table:
                   Fn::GetAtt:
-                  - BD
+                  - DB
                   - Arn
-          - Effect: Allow
-            Action:
-            - lambda:invokeFunction
-            Resource:
-            - Fn::GetAtt:
-              - GetStudentFunction
-              - Arn
   AppSyncApi:
     DependsOn: AppSyncServiceRole
     Type: AWS::AppSync::GraphQLApi
     Description: The GraphQL API for the single table App
     Properties:
-      Name: ofviOffi
+      Name: AppSyncTestAPI
       AuthenticationType: API_KEY
   AppSyncApiKey:
     Type: AWS::AppSync::ApiKey
@@ -87,10 +77,10 @@ Resources:
         - Arn
       DynamoDBConfig:
         TableName:
-          Ref: BD
+          Ref: DB
         AwsRegion:
           Fn::Sub: ${AWS::Region}
-  GetStudentsResolver:
+  ListStudentsResolver:
     Type: AWS::AppSync::Resolver
     DependsOn: AppSyncSchema
     Properties:
@@ -113,7 +103,7 @@ Resources:
         \                    \"name\": $util.toJson($item['name']),\n            \
         \        \"address\": $util.toJson($item['address'])\n                }#if($foreach.hasNext),#end\n\
         \                #end\n            ]\n}\n"
-  BD:
+  DB:
     Type: AWS::DynamoDB::Table
     Properties:
       TableName: Student
