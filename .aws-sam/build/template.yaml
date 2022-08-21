@@ -39,6 +39,13 @@ Resources:
                   Fn::GetAtt:
                   - DB
                   - Arn
+          - Effect: Allow
+            Action:
+            - lambda:invokeFunction
+            Resource:
+            - Fn::GetAtt:
+              - GetStudentFunction
+              - Arn
   AppSyncApi:
     DependsOn: AppSyncServiceRole
     Type: AWS::AppSync::GraphQLApi
@@ -80,6 +87,24 @@ Resources:
           Ref: DB
         AwsRegion:
           Fn::Sub: ${AWS::Region}
+  GetStudentDataSource:
+    Type: AWS::AppSync::DataSource
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+        - AppSyncApi
+        - ApiId
+      Name: GetStudentDataSource
+      Type: AWS_LAMBDA
+      ServiceRoleArn:
+        Fn::GetAtt:
+        - AppSyncServiceRole
+        - Arn
+      LambdaConfig:
+        LambdaFunctionArn:
+          Fn::GetAtt:
+          - GetStudentFunction
+          - Arn
   ListStudentsResolver:
     Type: AWS::AppSync::Resolver
     DependsOn: AppSyncSchema

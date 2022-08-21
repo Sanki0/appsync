@@ -37,11 +37,11 @@ Resources:
                   - !Sub 
                     - "${Table}/index/*"
                     - { Table: !GetAtt DB.Arn }
-              # - Effect: Allow
-              #   Action:
-              #   - lambda:invokeFunction
-              #   Resource: 
-              #     - !GetAtt GetStudentFunction.Arn
+              - Effect: Allow
+                Action:
+                - lambda:invokeFunction
+                Resource: 
+                  - !GetAtt GetStudentFunction.Arn
 
 
   AppSyncApi:
@@ -77,6 +77,17 @@ Resources:
       DynamoDBConfig:
         TableName: !Ref DB
         AwsRegion: !Sub ${AWS::Region}
+
+ # checkAnswers Data Source
+  GetStudentDataSource:
+    Type: "AWS::AppSync::DataSource"
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      Name: GetStudentDataSource
+      Type: AWS_LAMBDA
+      ServiceRoleArn: !GetAtt AppSyncServiceRole.Arn
+      LambdaConfig:
+        LambdaFunctionArn: !GetAtt GetStudentFunction.Arn
 
 
 
