@@ -105,7 +105,7 @@ Resources:
           Fn::GetAtt:
           - GetStudentFunction
           - Arn
-  ListStudentsResolver:
+  createStudentResolver:
     Type: AWS::AppSync::Resolver
     DependsOn: AppSyncSchema
     Properties:
@@ -113,21 +113,22 @@ Resources:
         Fn::GetAtt:
         - AppSyncApi
         - ApiId
-      TypeName: Query
-      FieldName: getStudents
+      TypeName: Mutation
+      FieldName: createStudent
       DataSourceName:
         Fn::GetAtt:
         - AppSyncTableDataSource
         - Name
       RequestMappingTemplate: "{\n  \"version\": \"2017-02-28\",\n  \"operation\"\
-        : \"Query\",\n  \"query\": {\n    \"expression\": \"id = :id\", \n    \"expressionValues\"\
-        :\t{              \n\t    \":id\" : $util.dynamodb.toDynamoDBJson(\"STUDENT\"\
-        )\n    }\n  }\n}\n"
-      ResponseMappingTemplate: "{\n  \"items\": [\n              #foreach($item in\
-        \ $ctx.result.items)\n                {\n                    \"dni\":$util.toJson($item['sort']),\n\
-        \                    \"name\": $util.toJson($item['name']),\n            \
-        \        \"address\": $util.toJson($item['address'])\n                }#if($foreach.hasNext),#end\n\
-        \                #end\n            ]\n}\n"
+        : \"PutItem\",\n  \"key\": {\n        \"id\" : $util.dynamodb.toDynamoDBJson(\"\
+        STUDENT\"),\n        \"sort\": $util.dynamodb.toDynamoDBJson($context.arguments.input.dni)\n\
+        \  },\n  \"attributeValues\" : {\n    \"dni\" : $util.dynamodb.toDynamoDBJson($context.arguments.input.dni),\n\
+        \    \"name\" : $util.dynamodb.toDynamoDBJson($context.arguments.input.name),\n\
+        \    \"address\" : $util.dynamodb.toDynamoDBJson($context.arguments.input.address)\n\
+        \  }\n}\n"
+      ResponseMappingTemplate: "{\n    \"name\": $util.toJson($ctx.result['name']),\n\
+        \    \"dni\": $util.toJson($ctx.result['dni']),\n    \"address\": $util.toJson($ctx.result['address'])\n\
+        }\n"
   DB:
     Type: AWS::DynamoDB::Table
     Properties:

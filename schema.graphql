@@ -15,16 +15,16 @@ type StudentsOutput{
 }
 
 type Query{
-  getStudents: [Student],
+  listStudents: [Student],
  
   getStudent(dni: String!): Student,
 
 }
 
 type Mutation{
-  createStudent(student: StudentInput): Student,
+  createStudent(input: StudentInput): Student,
   
-  updateStudent(student: StudentInput): Student,
+  updateStudent(input: StudentInput): Student,
   
   deleteStudent(dni: String!): Student,
 

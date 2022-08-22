@@ -89,11 +89,39 @@ Resources:
       LambdaConfig:
         LambdaFunctionArn: !GetAtt GetStudentFunction.Arn
 
+  # Resolver: Mutation - createStudent
+  createStudentResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      TypeName: Mutation
+      FieldName: createStudent
+      DataSourceName: !GetAtt AppSyncTableDataSource.Name
+      RequestMappingTemplate: >
+        {
+          "version": "2017-02-28",
+          "operation": "PutItem",
+          "key": {
+                "id" : $util.dynamodb.toDynamoDBJson("STUDENT"),
+                "sort": $util.dynamodb.toDynamoDBJson($context.arguments.input.dni)
+          },
+          "attributeValues" : {
+            "dni" : $util.dynamodb.toDynamoDBJson($context.arguments.input.dni),
+            "name" : $util.dynamodb.toDynamoDBJson($context.arguments.input.name),
+            "address" : $util.dynamodb.toDynamoDBJson($context.arguments.input.address)
+          }
+        }
+      ResponseMappingTemplate: >
+        {
+            "name": $util.toJson($ctx.result['name']),
+            "dni": $util.toJson($ctx.result['dni']),
+            "address": $util.toJson($ctx.result['address'])
+        }
 
 
 
-
-#  # Resolver: Query - getStudent
+  # Resolver: Query - getStudent
 #   GetStudentResolver:
 #     Type: AWS::AppSync::Resolver
 #     DependsOn: AppSyncSchema
@@ -115,41 +143,41 @@ Resources:
 #         {
 #             "name": $util.toJson($ctx.result['name']),
 #             "dni": $util.toJson($ctx.result['dni']),
-#             "address": $util.toJson($ctx.result['address']),
+#             "address": $util.toJson($ctx.result['address'])
 #         }
 
- # Resolver: Query - getStudents
-  ListStudentsResolver:
-    Type: AWS::AppSync::Resolver
-    DependsOn: AppSyncSchema
-    Properties:
-      ApiId: !GetAtt AppSyncApi.ApiId
-      TypeName: Query
-      FieldName: getStudents
-      DataSourceName: !GetAtt AppSyncTableDataSource.Name
-      RequestMappingTemplate: >
-        {
-          "version": "2017-02-28",
-          "operation": "Query",
-          "query": {
-            "expression": "id = :id", 
-            "expressionValues":	{              
-        	    ":id" : $util.dynamodb.toDynamoDBJson("STUDENT")
-            }
-          }
-        }
-      ResponseMappingTemplate: >
-        {
-          "items": [
-                      #foreach($item in $ctx.result.items)
-                        {
-                            "dni":$util.toJson($item['sort']),
-                            "name": $util.toJson($item['name']),
-                            "address": $util.toJson($item['address'])
-                        }#if($foreach.hasNext),#end
-                        #end
-                    ]
-        }
+#  # Resolver: Query - listStudents
+#   ListStudentsResolver:
+#     Type: AWS::AppSync::Resolver
+#     DependsOn: AppSyncSchema
+#     Properties:
+#       ApiId: !GetAtt AppSyncApi.ApiId
+#       TypeName: Query
+#       FieldName: listStudents
+#       DataSourceName: !GetAtt AppSyncTableDataSource.Name
+#       RequestMappingTemplate: >
+#         {
+#           "version": "2017-02-28",
+#           "operation": "Query",
+#           "query": {
+#             "expression": "id = :id", 
+#             "expressionValues":	{              
+#         	    ":id" : $util.dynamodb.toDynamoDBJson("STUDENT")
+#             }
+#           }
+#         }
+#       ResponseMappingTemplate: >
+#         {
+#           "items": [
+#                       #foreach($item in $ctx.result.items)
+#                         {
+#                             "dni":$util.toJson($item['sort']),
+#                             "name": $util.toJson($item['name']),
+#                             "address": $util.toJson($item['address'])
+#                         }#if($foreach.hasNext),#end
+#                         #end
+#                     ]
+#         }
 
   # DynamoDB
   DB:
