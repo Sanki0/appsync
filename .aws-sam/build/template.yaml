@@ -150,6 +150,29 @@ Resources:
       ResponseMappingTemplate: "{\n    \"name\": $util.toJson($ctx.result['name']),\n\
         \    \"dni\": $util.toJson($ctx.result['dni']),\n    \"address\": $util.toJson($ctx.result['address'])\n\
         }\n"
+  ListStudentsResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+        - AppSyncApi
+        - ApiId
+      TypeName: Query
+      FieldName: listStudents
+      DataSourceName:
+        Fn::GetAtt:
+        - AppSyncTableDataSource
+        - Name
+      RequestMappingTemplate: "{\n  \"version\": \"2017-02-28\",\n  \"operation\"\
+        : \"Query\",\n  \"query\": {\n    \"expression\": \"id = :id\",\n    \"expressionValues\"\
+        :\t{              \n\t    \":id\" : $util.dynamodb.toDynamoDBJson(\"STUDENT\"\
+        )\n    }\n  }\n}\n"
+      ResponseMappingTemplate: "{\n  \"students\": [\n              #foreach($item\
+        \ in $ctx.result.items)\n                {\n                    \"dni\":$util.toJson($item['dni']),\n\
+        \                    \"name\": $util.toJson($item['name']),\n            \
+        \        \"address\": $util.toJson($item['address'])\n                }#if($foreach.hasNext),#end\n\
+        \                #end\n            ]\n}\n"
   DB:
     Type: AWS::DynamoDB::Table
     Properties:

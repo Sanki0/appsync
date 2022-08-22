@@ -11,11 +11,11 @@ input StudentInput {
 }
 
 type StudentsOutput{
-  items:[Student]
+  students:[Student]
 }
 
 type Query{
-  listStudents: [Student],
+  listStudents: StudentsOutput,
  
   getStudent(dni: String!): Student,
 
