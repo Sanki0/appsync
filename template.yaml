@@ -155,6 +155,30 @@ Resources:
         }
 
 
+  DeleteStudentResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: AppSyncSchema
+    Properties: 
+      ApiId: !GetAtt AppSyncApi.ApiId
+      TypeName: Mutation
+      FieldName: deleteStudent
+      DataSourceName: !GetAtt AppSyncTableDataSource.Name
+      RequestMappingTemplate: >
+        {
+          "version": "2017-02-28",
+          "operation": "DeleteItem",
+          "key": {
+            "id": $util.dynamodb.toDynamoDBJson("STUDENT"),
+            "sort": $util.dynamodb.toDynamoDBJson($ctx.args.dni)
+          }
+        }
+      ResponseMappingTemplate: >
+        {
+            "name": $util.toJson($ctx.result['name']),
+            "dni": $util.toJson($ctx.result['dni']),
+            "address": $util.toJson($ctx.result['address'])
+        }
+
   # Resolver: Query - getStudent
   GetStudentResolver:
     Type: AWS::AppSync::Resolver

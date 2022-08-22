@@ -154,6 +154,27 @@ Resources:
       ResponseMappingTemplate: "{\n    \"name\": $util.toJson($ctx.result['name']),\n\
         \    \"dni\": $util.toJson($ctx.result['dni']),\n    \"address\": $util.toJson($ctx.result['address'])\n\
         }\n"
+  DeleteStudentResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+        - AppSyncApi
+        - ApiId
+      TypeName: Mutation
+      FieldName: deleteStudent
+      DataSourceName:
+        Fn::GetAtt:
+        - AppSyncTableDataSource
+        - Name
+      RequestMappingTemplate: "{\n  \"version\": \"2017-02-28\",\n  \"operation\"\
+        : \"DeleteItem\",\n  \"key\": {\n    \"id\": $util.dynamodb.toDynamoDBJson(\"\
+        STUDENT\"),\n    \"sort\": $util.dynamodb.toDynamoDBJson($ctx.args.dni)\n\
+        \  }\n}\n"
+      ResponseMappingTemplate: "{\n    \"name\": $util.toJson($ctx.result['name']),\n\
+        \    \"dni\": $util.toJson($ctx.result['dni']),\n    \"address\": $util.toJson($ctx.result['address'])\n\
+        }\n"
   GetStudentResolver:
     Type: AWS::AppSync::Resolver
     DependsOn: AppSyncSchema
