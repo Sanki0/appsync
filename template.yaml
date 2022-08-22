@@ -122,29 +122,29 @@ Resources:
 
 
   # Resolver: Query - getStudent
-#   GetStudentResolver:
-#     Type: AWS::AppSync::Resolver
-#     DependsOn: AppSyncSchema
-#     Properties:
-#       ApiId: !GetAtt AppSyncApi.ApiId
-#       TypeName: Query
-#       FieldName: getStudent
-#       DataSourceName: !GetAtt AppSyncTableDataSource.Name
-#       RequestMappingTemplate: >
-#         {
-#           "version": "2017-02-28",
-#           "operation": "GetItem",
-#           "key": {
-#             "id": $util.dynamodb.toDynamoDBJson("STUDENT"),
-#             "sort": $util.dynamodb.toDynamoDBJson($context.args.dni)
-#           }
-#         }
-#       ResponseMappingTemplate: >
-#         {
-#             "name": $util.toJson($ctx.result['name']),
-#             "dni": $util.toJson($ctx.result['dni']),
-#             "address": $util.toJson($ctx.result['address'])
-#         }
+  GetStudentResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      TypeName: Query
+      FieldName: getStudent
+      DataSourceName: !GetAtt AppSyncTableDataSource.Name
+      RequestMappingTemplate: >
+        {
+          "version": "2017-02-28",
+          "operation": "GetItem",
+          "key": {
+            "id": $util.dynamodb.toDynamoDBJson("STUDENT"),
+            "sort": $util.dynamodb.toDynamoDBJson($context.arguments.dni)
+          }
+        }
+      ResponseMappingTemplate: >
+        {
+            "name": $util.toJson($ctx.result['name']),
+            "dni": $util.toJson($ctx.result['dni']),
+            "address": $util.toJson($ctx.result['address'])
+        }
 
 #  # Resolver: Query - listStudents
 #   ListStudentsResolver:
