@@ -37,11 +37,7 @@ Resources:
                   - !Sub 
                     - "${Table}/index/*"
                     - { Table: !GetAtt DB.Arn }
-              - Effect: Allow
-                Action:
-                - lambda:invokeFunction
-                Resource: 
-                  - !GetAtt GetStudentFunction.Arn
+
 
 
   AppSyncApi:
@@ -78,16 +74,6 @@ Resources:
         TableName: !Ref DB
         AwsRegion: !Sub ${AWS::Region}
 
- # checkAnswers Data Source
-  GetStudentDataSource:
-    Type: "AWS::AppSync::DataSource"
-    Properties:
-      ApiId: !GetAtt AppSyncApi.ApiId
-      Name: GetStudentDataSource
-      Type: AWS_LAMBDA
-      ServiceRoleArn: !GetAtt AppSyncServiceRole.Arn
-      LambdaConfig:
-        LambdaFunctionArn: !GetAtt GetStudentFunction.Arn
 
   # Resolver: Mutation - createStudent
   createStudentResolver:
@@ -154,7 +140,7 @@ Resources:
             "address": $util.toJson($ctx.result['address'])
         }
 
-
+  # Resolver: Mutation - deleteStudent
   DeleteStudentResolver:
     Type: AWS::AppSync::Resolver
     DependsOn: AppSyncSchema
@@ -254,20 +240,6 @@ Resources:
           KeyType: RANGE
       BillingMode: PAY_PER_REQUEST
 
-  # Functions
-  GetStudentFunction:
-    Type: 'AWS::Serverless::Function'
-    # Metadata:
-    #   BuildMethod: makefile
-    Properties:
-      Handler: handler
-      Runtime: go1.x
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref DB
-      Environment:
-        Variables:
-          GREETINGS_TABLE: !Ref DB
 
 
 

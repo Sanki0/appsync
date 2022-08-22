@@ -39,13 +39,6 @@ Resources:
                   Fn::GetAtt:
                   - DB
                   - Arn
-          - Effect: Allow
-            Action:
-            - lambda:invokeFunction
-            Resource:
-            - Fn::GetAtt:
-              - GetStudentFunction
-              - Arn
   AppSyncApi:
     DependsOn: AppSyncServiceRole
     Type: AWS::AppSync::GraphQLApi
@@ -87,24 +80,6 @@ Resources:
           Ref: DB
         AwsRegion:
           Fn::Sub: ${AWS::Region}
-  GetStudentDataSource:
-    Type: AWS::AppSync::DataSource
-    Properties:
-      ApiId:
-        Fn::GetAtt:
-        - AppSyncApi
-        - ApiId
-      Name: GetStudentDataSource
-      Type: AWS_LAMBDA
-      ServiceRoleArn:
-        Fn::GetAtt:
-        - AppSyncServiceRole
-        - Arn
-      LambdaConfig:
-        LambdaFunctionArn:
-          Fn::GetAtt:
-          - GetStudentFunction
-          - Arn
   createStudentResolver:
     Type: AWS::AppSync::Resolver
     DependsOn: AppSyncSchema
@@ -234,22 +209,6 @@ Resources:
       - AttributeName: sort
         KeyType: RANGE
       BillingMode: PAY_PER_REQUEST
-  GetStudentFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: handler
-      Runtime: go1.x
-      Policies:
-      - DynamoDBCrudPolicy:
-          TableName:
-            Ref: DB
-      Environment:
-        Variables:
-          GREETINGS_TABLE:
-            Ref: DB
-      CodeUri: GetStudentFunction
-    Metadata:
-      SamResourceId: GetStudentFunction
 Outputs:
   APIKey:
     Description: API Key
