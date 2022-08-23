@@ -21,9 +21,12 @@ Resources:
           PolicyDocument:
             Version: 2012-10-17
             Statement:
-              # - Effect: Allow
-              #   Action:
-              #     - states:StartSyncExecution
+              - Effect: Allow
+                Action:
+                  - states:StartSyncExecution #Type: Express
+                Resource:
+                  - !Ref SumAgeStateMachine
+
               - Effect: Allow
                 Action:
                   - dynamodb:GetItem
@@ -74,6 +77,22 @@ Resources:
         TableName: !Ref DB
         AwsRegion: !Sub ${AWS::Region}
 
+ # AppSync Data Source for StepFunction
+  StepFunctionsHttpDataSource:
+    Type: AWS::AppSync::DataSource
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      Name: StepFunctionsHttpDataSource
+      Description: Step Functions HTTP
+      Type: HTTP
+      ServiceRoleArn: !GetAtt AppSyncServiceRole.Arn
+      HttpConfig:
+        Endpoint: !Sub https://sync-states.${AWS::Region}.amazonaws.com/
+        AuthorizationConfig:
+          AuthorizationType: AWS_IAM
+          AwsIamConfig:
+            SigningRegion: !Ref AWS::Region
+            SigningServiceName: states
 
   # Resolver: Mutation - createStudent
   createStudentResolver:
@@ -95,14 +114,16 @@ Resources:
           "attributeValues" : {
             "dni" : $util.dynamodb.toDynamoDBJson($context.arguments.input.dni),
             "name" : $util.dynamodb.toDynamoDBJson($context.arguments.input.name),
-            "address" : $util.dynamodb.toDynamoDBJson($context.arguments.input.address)
+            "address" : $util.dynamodb.toDynamoDBJson($context.arguments.input.address),
+            "age" : $util.dynamodb.toDynamoDBJson($context.arguments.input.age)
           }
         }
       ResponseMappingTemplate: >
         {
             "name": $util.toJson($ctx.result['name']),
             "dni": $util.toJson($ctx.result['dni']),
-            "address": $util.toJson($ctx.result['address'])
+            "address": $util.toJson($ctx.result['address']),
+            "age": $util.toJson($ctx.result['age'])
         }
 
   # Resolver: Mutation - updateStudent
@@ -123,13 +144,14 @@ Resources:
                 "sort": $util.dynamodb.toDynamoDBJson($context.arguments.input.dni)
           },
           "update":{
-              "expression" : "set #name=:name, address = :address",
+              "expression" : "set #name=:name, address = :address, age = :age",
               "expressionNames" : {
                 "#name" : "name"
               }, 
               "expressionValues" : {
                 ":name" : $utils.dynamodb.toDynamoDBJson($context.arguments.input.name),
-                ":address" : $utils.dynamodb.toDynamoDBJson($context.arguments.input.address)
+                ":address" : $utils.dynamodb.toDynamoDBJson($context.arguments.input.address),
+                ":age" : $utils.dynamodb.toDynamoDBJson($context.arguments.input.age)
               }
             }
         }
@@ -137,7 +159,8 @@ Resources:
         {
             "name": $util.toJson($ctx.result['name']),
             "dni": $util.toJson($ctx.result['dni']),
-            "address": $util.toJson($ctx.result['address'])
+            "address": $util.toJson($ctx.result['address']),
+            "age": $util.toJson($ctx.result['age'])
         }
 
   # Resolver: Mutation - deleteStudent
@@ -162,7 +185,8 @@ Resources:
         {
             "name": $util.toJson($ctx.result['name']),
             "dni": $util.toJson($ctx.result['dni']),
-            "address": $util.toJson($ctx.result['address'])
+            "address": $util.toJson($ctx.result['address']),
+            "age": $util.toJson($ctx.result['age'])
         }
 
   # Resolver: Query - getStudent
@@ -187,7 +211,8 @@ Resources:
         {
             "name": $util.toJson($ctx.result['name']),
             "dni": $util.toJson($ctx.result['dni']),
-            "address": $util.toJson($ctx.result['address'])
+            "address": $util.toJson($ctx.result['address']),
+            "age": $util.toJson($ctx.result['age'])
         }
 
   # Resolver: Query - listStudents
@@ -217,11 +242,82 @@ Resources:
                         {
                             "dni":$util.toJson($item['dni']),
                             "name": $util.toJson($item['name']),
-                            "address": $util.toJson($item['address'])
+                            "address": $util.toJson($item['address']),
+                            "age": $util.toJson($item['age'])
                         }#if($foreach.hasNext),#end
                         #end
                     ]
         }
+
+  # Resolver: Mutation - sumAgeStudent
+  SumAgeStudentResolver:
+    Type: AWS::AppSync::Resolver
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      TypeName: Mutation
+      FieldName: sumAgeStudent
+      DataSourceName: !GetAtt StepFunctionsHttpDataSource.Name
+      RequestMappingTemplate: !Sub >
+        {
+          "version": "2018-05-29",
+          "method": "POST",
+          "resourcePath": "/",
+          "params": {
+            "headers": {
+              "content-type": "application/x-amz-json-1.0",
+              "x-amz-target":"AWSStepFunctions.StartSyncExecution"
+            },
+            "body": {
+              "stateMachineArn": "${SumAgeStateMachine}",
+              "input": "{ \"dni\": $util.escapeJavaScript($util.toJson($ctx.args.dni))}"
+            }
+          }
+        }
+      ResponseMappingTemplate: $util.parseJson($ctx.result.body).output
+        # {
+        #   "dni": $util.toJson($ctx.result.body.output['dni']),
+        #   "name": $util.toJson($ctx.result.body.output['name']),
+        #   "age": $util.toJson($ctx.result.body.output['age'])
+        # }
+
+ ###############      
+ ## LOGS      ##
+ ###############  
+
+  SumAgeLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/vendedlogs/states/${AWS::StackName}/sum-age
+      RetentionInDays: 3 
+
+ ###################      
+ ## STATEMACHINES ##
+ ###################
+
+  SumAgeStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Type: EXPRESS
+      Name: sumAgeStateMachine
+      DefinitionUri: statemachines/sum-age.asl.json
+      DefinitionSubstitutions:
+        DDBUpdateItem: !Sub arn:${AWS::Partition}:states:::dynamodb:updateItem
+        DDBGetItem: !Sub arn:${AWS::Partition}:states:::dynamodb:getItem
+        TableName: !Ref DB
+        SumAgeFunctionArn: !GetAtt SumAgeFunction.Arn
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt SumAgeLogs.Arn
+        IncludeExecutionData: true
+        Level: ALL   
+      Policies: 
+        - LambdaInvokePolicy:
+            FunctionName: !Ref SumAgeFunction
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DB
+        - CloudWatchLogsFullAccess
+
 
   # DynamoDB
   DB:
@@ -240,7 +336,17 @@ Resources:
           KeyType: RANGE
       BillingMode: PAY_PER_REQUEST
 
-
+# Functions
+  SumAgeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/sum-age
+      Handler: handler
+      Runtime: go1.x
+      MemorySize: 128    
+      Timeout: 5
+      Policies:
+        - AWSLambdaBasicExecutionRole
 
 
 Outputs:

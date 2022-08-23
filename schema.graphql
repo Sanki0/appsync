@@ -2,16 +2,22 @@ type Student{
   name: String,
   dni: String!,
   address: String,
+  age: Int
 }
 
 input StudentInput {
   name: String,
   dni: String!,
   address: String,
+  age: Int
 }
 
 type StudentsOutput{
   students:[Student]
+}
+
+type Execution{
+  output: String!,
 }
 
 type Query{
@@ -27,5 +33,7 @@ type Mutation{
   updateStudent(input: StudentInput): Student,
   
   deleteStudent(dni: String!): Student,
+
+  sumAgeStudent(dni: String!): Student,
 
 }

@@ -1,0 +1,72 @@
+{
+  "Comment": "Sum Age",
+  "StartAt": "Get Student",
+  "States": {
+    "Get Student":{
+      "Type": "Task",
+      "Resource": "${DDBGetItem}",
+      "Parameters": {
+        "TableName": "${TableName}",
+        "Key":{
+          "id":{
+            "S": "STUDENT"
+          },
+          "sort": {
+            "S.$": "$$.Execution.Input.dni"
+          }
+        },
+        "ProjectionExpression": "age"
+      },
+      "ResultPath": "$",
+      "Next": "Sum Age"
+    },
+    "Sum Age":{
+      "Type": "Task",
+      "Resource": "${SumAgeFunctionArn}",
+      "Parameters": {
+        "age.$": "$.Item.age.N"
+      },
+      "ResultPath":"$.result",
+      "Next": "Update Age"
+    },
+    "Update Age":{
+      "Type": "Task",
+      "Resource": "${DDBUpdateItem}",
+        "Parameters": {
+          "TableName": "${TableName}",
+            "Key": {
+              "id": {
+                "S": "STUDENT"
+              },
+              "sort": {
+                "S.$": "$$.Execution.Input.dni"
+              }
+            },
+            "ExpressionAttributeNames":{
+              "#age": "age"
+            },
+            "ExpressionAttributeValues":{
+              ":age":{
+
+                "N.$": "States.Format('{}',$.result)"
+              }
+            },
+            "ReturnValues": "ALL_NEW",
+            "UpdateExpression": "SET #age=:age"
+        },
+        "OutputPath":"$.Attributes",
+        "Next": "Parse to Schema"
+    },
+    "Parse to Schema":{
+      "Type": "Pass",
+      "Parameters":{
+        "dni.$": "$.dni.S",
+        "name.$": "$.name.S",
+        "age.$": "$.age.N"
+      } ,
+      "End": true
+    }
+
+  }
+
+}
