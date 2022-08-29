@@ -20,6 +20,248 @@ type Execution{
   output: String!,
 }
 
+type Option {
+  # titulo
+  title: String!
+    # url
+  url: String!
+    # icono
+  icon: String
+    # activo o no
+  active: Boolean!
+}
+
+input OptionInput {
+    # titulo
+  title: String!
+    # url
+  url: String!
+    # icono
+  icon: String
+    # activo o no
+  active: Boolean!
+}
+
+type SettingsOB {
+  # Aplicaciones
+  apps:[Option],
+  # Opciones del menu
+  menu: [Option]!,
+  # Procesos
+  processes:[Option]!,
+  # foto
+  photo: String,
+  # nombre completo
+  name: String!,
+  # numero de documento
+  dni: String!,
+  # tipo de documento
+  docType: String!,
+  # email 		?? Email corporativo
+  email: String!,
+  # telefono		?? Telefono corporativo
+  phone: String!,
+  # departamento o area
+  area: String,
+  # subdepartamento o subarea
+  subArea: String,
+  # dias permitidos
+  days: Int!,
+  # dias permitidos de home office
+  homeOffice: Int,
+  # rol
+  role: String,
+  # jefe
+  boss: String,
+  # nombre del jefe
+  bossName: String,
+  # backup
+  backup: String,
+  # nombre del backup
+  backupName: String,
+  # usuario
+  user: String,
+  
+  ### New Attributes
+  # Sexo
+  gender: String,
+  # FechaNacimiento
+  dateBirth: String,
+  # Pais de Nacimiento
+  countryBirth: String,
+  # Email Personal,
+  personalEmail: String,
+  # Estado Civil,
+  civilState: String,
+  # Celular Personal
+  personalPhone: String,
+  # Pais de Residencia
+  countryResidence: String,
+  # Departamento de Residencia
+  departmentResidence: String,
+  # Dirección
+  address: String,
+  
+  # Puesto o Cargo
+  jobTitle: String,
+  # Fecha de Ingreso
+  entryDate: String!,
+  # Fecha de Ultima Sesion
+  lastSessionDate: String,
+  # Fecha de Creación de Usuario
+  creationDate: String!,
+  ## Pendiente Fecha de última modificación
+  # Estado de Usuario		Acá Sí
+  userState: UserState!,
+  # Tipo de Usuario
+  userType: String!,
+}
+#Pendiente enum de estados
+enum UserState{
+  ACTIVE,
+  BLOCKED,
+  ARCHIVED,
+  UNCONFIRMED,
+}
+
+input SettingsOBInput {
+  ###Datos Personales
+  # Nombre Completo
+  name: String!
+  # Tipo de documento
+  docType: String!
+  # numero de documento
+  dni: String!
+  # Sexo
+  gender: String
+  # FechaNacimiento
+  birthDate: String
+  # Pais de Nacimiento   !pendiente de revisar
+  countryBirth: String
+  # Email Personal
+  emailPersonal: String
+  # Estado Civil
+  civilState: String
+  # Celular
+  phonePersonal: String
+  # Pais de Residencia
+  countryResidence: String
+  # Departamento de Residencia
+  departmentResidence: String
+  # Dirección
+  address: String
+  ###Datos Laborales
+  # departamento o area,
+  area: String!
+  # subdepartamento o subarea
+  subArea: String!
+  # Puesto o Cargo
+  jobTittle: String
+  # Correo Corporativo
+  email: String!
+  # Fecha de Ingreso
+  entryDate: String!
+  # Fecha de Ultima Sesion
+  lastSessionDate: String
+  # Celular Corporativo 
+  phone: String
+  # Aplicaciones
+  apps:[OptionInput]
+  # Opciones del menu ???	PREGUNTAR QUE ES
+  menu: [OptionInput]!
+  # Procesos
+  processes:[OptionInput]!
+  # Tipo de Usuario
+  userType: String!
+  ###
+  # Estado de Usuario 		ESTE NO pero sería bueno que estuviera como atributo
+  userState: UserState!
+  # rol
+  role: String
+  # cantidad dias permitidos
+  days: Int!
+  # dias permitidos de home office
+  homeOffice: Int
+  ## DUDAAAS
+  # foto
+  photo: String
+  # jefe
+  boss: String
+  # nombre del jefe
+  bossName: String
+  # user
+  user: String
+}
+
+input UpdateSettingOBInput {
+  ###Datos Personales
+  # nombre completo
+  name: String!
+  # Tipo de documento
+  docType: String!
+  # numero de documeto
+  dni: String!
+  # Sexo
+  gender: String
+  # FechaNacimiento
+  birthDate: String
+  # Pais de Nacimiento
+  countryBirth: String
+  # Email Personal
+  emailPersonal: String
+  # Estado Civil
+  civilState: String
+  # Celular
+  phonePersonal: String
+  # Pais de Residencia
+  countryResidence: String
+  # Departamento de Residencia
+  departmentResidence: String
+  # Dirección
+  address: String
+  ###Datos Laborales
+  # departamento o area
+  area: String!
+  # subdepartamento o subarea
+  subArea: String!
+  # Puesto o Cargo
+  jobTitle: String
+  # Fecha de Ingreso
+  entryDate: String! 
+  # Fecha de Ultima Sesion
+  lastSessionDate: String
+  # Celular Corporativo 
+  phone: String
+  # Aplicaciones
+  apps:[OptionInput]      #NO SE CAMBIA ??
+  # Opciones del menu ???
+  menu: [OptionInput]!     #NO SE CAMBIA ??
+  # Procesos
+  processes:[OptionInput]!   #NO SE CAMBIA ??
+  ###
+  # rol
+  role: String
+  # jefe
+  boss: String
+  # nombre del jefe
+  bossName: String
+  # usuario
+  user: String
+  # backup
+  backup: String
+  # nombre del backup
+  backupName: String
+  # dias permitidos
+  days: Int!
+  # dias permitidos de home office
+  homeOffice: Int!
+}
+
+# schema {
+#   query: Query
+#   mutation: Mutation
+# }
+
 type Query{
   listStudents: StudentsOutput,
  
@@ -36,4 +278,8 @@ type Mutation{
 
   sumAgeStudent(dni: String!): Student,
 
+  storeSettings(settings:SettingsOBInput!): SettingsOB
+  # editar configuraciones OnBoarding
+  updateSettingOB(settings:UpdateSettingOBInput!): SettingsOB
 }
+

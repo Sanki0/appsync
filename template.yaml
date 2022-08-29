@@ -280,6 +280,133 @@ Resources:
         #   "age": $util.toJson($ctx.result.body.output['age'])
         # }
 
+ # Resolver: Mutation - storeSettings
+  StoreSettingsResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      TypeName: Mutation
+      FieldName: storeSettings
+      DataSourceName: !GetAtt AppSyncTableDataSource.Name
+      RequestMappingTemplate: >
+        #if($ctx.args.user!="") 
+          #set($user=$ctx.args.settings.user)
+        #else 
+          #set($user=$ctx.identity.username)
+        #end
+        {
+            "version" : "2017-02-28",
+            "operation" : "PutItem",
+            "key" : {
+                "id" : $util.dynamodb.toDynamoDBJson($user),
+                "sort" : {"S":"SETTINGS"}
+            },
+            "attributeValues" : $util.dynamodb.toMapValuesJson($ctx.args.settings)
+        }
+      ResponseMappingTemplate: $util.toJson($ctx.args.settings)
+
+  # Resolver: Mutation - updateSetting
+  UpdateSettingResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      TypeName: Mutation
+      FieldName: updateSettingOB
+      DataSourceName: !GetAtt AppSyncTableDataSource.Name
+      RequestMappingTemplate: >
+        #if($util.isNull($ctx.args.settings.homeOffice))
+          #set($homeOffice=0)
+        #else
+          #set($homeOffice=$ctx.args.settings.homeOffice)
+        #end
+        {
+            "version" : "2018-05-29",
+            "operation" : "UpdateItem",
+            "key" : {
+                "id" : $util.dynamodb.toDynamoDBJson($ctx.args.settings.user),
+                "sort" : $util.dynamodb.toDynamoDBJson("SETTINGS")
+            },
+            "update" : {
+              "expression" : "set #name=:name, docType=:docType, dni=:dni, gender=:gender, birthDate=:birthDate, countryDate=:countryDate, emailPersonal=:emailPersonal, civilState=:civilState, phonePersonal=:phonePersonal, countryResidence=:countryResidence, departmentResidence=:departmentResidence, address=:address, #area=:area, subArea=:subArea, jobTitle=:jobTitle, email=:email, entryDate=:entryDate, lastSessionDate=:lastSessionDate, phone=:phone, apps=:apps, menu=:menu, processes=:processes, userType=:userType, #role=:role, #boss=boss, bossName=bossName", #user=:user, #backup=:backup, backupName=:backupName, #days=:days, #homeOffice=:homeOffice,   
+              "expressionNames" : {
+                "#name": "name",
+                "#area": "area",
+                "#role": "role",
+                "#boss": "boss",
+                "#days": "days",
+                "#backup": "backup",
+                "#homeOffice": "homeOffice",
+                "#user": "user"
+              },
+              "expressionValues" : {
+                ":name": $utils.dynamodb.toDynamoJson($ctx.args.settings.name),
+                ":docType": $utils.dynamodb.toDynamoJson($ctx.args.settings.docType),
+                ":dni": $utils.dynamodb.toDynamoJson($ctx.args.settings.dni),
+                ":gender": $utils.dynamodb.toDynamoJson($ctx.args.settings.gender),
+                ":birthDate": $utils.dynamodb.toDynamoJson($ctx.args.settings.birthDate),
+                ":countryBirth": $utils.dynamodb.toDynamoJson($ctx.args.settings.countryBirth),
+                ":emailPersonal": $utils.dynamodb.toDynamoJson($ctx.args.settings.emailPersonal),
+                ":civilState": $utils.dynamodb.toDynamoJson($ctx.args.settings.civilState),
+                ":phonePersonal": $utils.dynamodb.toDynamoJson($ctx.args.settings.phonePersonal),
+                ":countryResidence": $utils.dynamodb.toDynamoJson($ctx.args.settings.countryResidence),
+                ":departmentResidence": $utils.dynamodb.toDynamoJson($ctx.args.settings.departmentResidence),
+                ":address": $utils.dynamodb.toDynamoJson($ctx.args.settings.address),
+                ":area" : $utils.dynamodb.toDynamoDBJson($ctx.args.settings.area),
+                ":subArea" : $utils.dynamodb.toDynamoDBJson($ctx.args.settings.subArea),
+                ":jobTitle" : $utils.dynamodb.toDynamoDBJson($ctx.args.settings.jobTitle),
+                ":entryDate" : $utils.dynamodb.toDynamoDBJson($ctx.args.settings.entryDate),
+                ":lastSessionDate" : $utils.dynamodb.toDynamoDBJson($ctx.args.settings.lastSessionDate),
+                ":phone" : $utils.dynamodb.toDynamoDBJson($ctx.args.settings.phone),
+                ":apps" : $utils.dynamodb.toDynamoDBJson($ctx.args.settings.apps),
+                ":menu" : $utils.dynamodb.toDynamoDBJson($ctx.args.settings.menu),
+                ":processes" : $utils.dynamodb.toDynamoDBJson($ctx.args.settings.processes),
+                ":role": $utils.dynamodb.toDynamoDBJson($util.defaultIfNullOrEmpty($ctx.args.settings.role, "")),
+                ":boss" : $utils.dynamodb.toDynamoDBJson($ctx.args.settings.boss),
+                ":bossName" : $utils.dynamodb.toDynamoDBJson($ctx.args.settings.bossName),
+                ":user" : $utils.dynamodb.toDynamoDBJson($ctx.args.settings.user),
+                ":backup" : $utils.dynamodb.toDynamoDBJson($util.defaultIfNullOrEmpty($ctx.args.settings.backup, "")),
+                ":backupName" : $utils.dynamodb.toDynamoDBJson($util.defaultIfNullOrEmpty($ctx.args.settings.backupName, "")),
+                ":days" : $utils.dynamodb.toDynamoDBJson($ctx.args.settings.days),
+                ":homeOffice": $utils.dynamodb.toDynamoDBJson($homeOffice)
+              }
+            }
+        }
+      ResponseMappingTemplate: >
+        {
+          "name": $util.toJson($ctx.result.name), 
+          "docType": $util.toJson($ctx.result.docType), 
+          "dni": $util.toJson($ctx.result.dni), 
+          "gender": $util.toJson($ctx.result.gender), 
+          "birthDate": $util.toJson($ctx.result.birthDate), 
+          "countryDate": $util.toJson($ctx.result.countryDate), 
+          "emailPersonal": $util.toJson($ctx.result.emailPersonal), 
+          "civilState": $util.toJson($ctx.result.civilState), 
+          "phonePersonal": $util.toJson($ctx.result.phonePersonal), 
+          "countryResidence": $util.toJson($ctx.result.countryResidence), 
+          "departmentResidence": $util.toJson($ctx.result.departmentResidence), 
+          "address": $util.toJson($ctx.result.address), 
+          "area": $util.toJson($ctx.result.area), 
+          "subArea": $util.toJson($ctx.result.subArea), 
+          "jobTitle": $util.toJson($ctx.result.jobTitle), 
+          "entryDate": $util.toJson($ctx.result.entryDate), 
+          "lastSessionDate": $util.toJson($ctx.result.lastSessionDate), 
+          "phone": $util.toJson($ctx.result.phone), 
+          "apps": $util.toJson($ctx.result.apps), 
+          "menu": $util.toJson($ctx.result.menu), 
+          "processes": $util.toJson($ctx.result.processes), 
+          "role": $util.toJson($ctx.result.role), 
+          "boss": $util.toJson($ctx.result.boss), 
+          "bossName": $util.toJson($ctx.result.bossName), 
+          "user": $util.toJson($ctx.result.id), 
+          "backup": $util.toJson($ctx.result.backup), 
+          "backupName": $util.toJson($ctx.result.backupName), 
+          "days": $util.toJson($ctx.result.days), 
+          "homeOffice": $util.toJson($ctx.result.homeOffice)
+        }
+
+
  ###############      
  ## LOGS      ##
  ###############  
