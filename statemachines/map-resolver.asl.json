@@ -1,0 +1,32 @@
+{
+  "Comment": "Map Resolver",
+  "StartAt": "Get Student Courses",
+  "States": {
+    "Get Student Courses":{
+      "Type": "Task",
+      "Resource": "${DDBGetItem}",
+      "Parameters": {
+        "TableName": "${TableName}",
+        "Key":{
+          "id":{
+            "S": "STUDENT"
+          },
+          "sort": {
+            "S.$": "$$.Execution.Input.dni"
+          }
+        },
+        "ProjectionExpression": "courses"
+      },
+      "ResultPath": "$",
+      "Next": "Parse to Schema"
+    },
+
+    "Parse to Schema":{
+      "Type": "Pass",
+      "Parameters": {
+        "courses.$":"$.courses.M[0].name"
+      },
+      "End": true
+    }
+  }
+}

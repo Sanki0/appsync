@@ -26,6 +26,7 @@ Resources:
             - states:StartSyncExecution
             Resource:
             - Ref: SumAgeStateMachine
+            - Ref: MapResolverStateMachine
           - Effect: Allow
             Action:
             - dynamodb:GetItem
@@ -128,11 +129,15 @@ Resources:
         \  },\n  \"attributeValues\" : {\n    \"dni\" : $util.dynamodb.toDynamoDBJson($context.arguments.input.dni),\n\
         \    \"name\" : $util.dynamodb.toDynamoDBJson($context.arguments.input.name),\n\
         \    \"address\" : $util.dynamodb.toDynamoDBJson($context.arguments.input.address),\n\
-        \    \"age\" : $util.dynamodb.toDynamoDBJson($context.arguments.input.age)\n\
+        \    \"age\" : $util.dynamodb.toDynamoDBJson($context.arguments.input.age),\n\
+        \    \"courses\" : $util.dynamodb.toDynamoDBJson($context.arguments.input.courses)\n\
         \  }\n}\n"
       ResponseMappingTemplate: "{\n    \"name\": $util.toJson($ctx.result['name']),\n\
         \    \"dni\": $util.toJson($ctx.result['dni']),\n    \"address\": $util.toJson($ctx.result['address']),\n\
-        \    \"age\": $util.toJson($ctx.result['age'])\n}\n"
+        \    \"age\": $util.toJson($ctx.result['age']),\n    \"courses\": \n     \
+        \ [\n        #foreach($course in $ctx.result.courses)\n        {\n       \
+        \   \"id\": $util.toJson($course['id']),\n          \"name\": $util.toJson($course.name)\n\
+        \        }#if($foreach.hasNext),#end\n        #end\n      ]\n}\n"
   UpdateStudentResolver:
     Type: AWS::AppSync::Resolver
     DependsOn: AppSyncSchema
@@ -152,9 +157,9 @@ Resources:
         STUDENT\"),\n        \"sort\": $util.dynamodb.toDynamoDBJson($context.arguments.input.dni)\n\
         \  },\n  \"update\":{\n      \"expression\" : \"set #name=:name, address =\
         \ :address, age = :age\",\n      \"expressionNames\" : {\n        \"#name\"\
-        \ : \"name\"\n      }, \n      \"expressionValues\" : {\n        \":name\"\
-        \ : $utils.dynamodb.toDynamoDBJson($context.arguments.input.name),\n     \
-        \   \":address\" : $utils.dynamodb.toDynamoDBJson($context.arguments.input.address),\n\
+        \ : \"name\"\n      }, \n      \"expressionValues\" : {\n\n        \":name\"\
+        \ : $utils.dynamodb.toDynamoDBJson($util.defaultIfNullOrEmpty($ctx.args.input.name,\
+        \ \"\")),\n\n        \":address\" : $utils.dynamodb.toDynamoDBJson($context.arguments.input.address),\n\
         \        \":age\" : $utils.dynamodb.toDynamoDBJson($context.arguments.input.age)\n\
         \      }\n    }\n}\n"
       ResponseMappingTemplate: "{\n    \"name\": $util.toJson($ctx.result['name']),\n\
@@ -247,6 +252,28 @@ Resources:
           ,\n      \"input\": \"{ \\\"dni\\\": $util.escapeJavaScript($util.toJson($ctx.args.dni))}\"\
           \n    }\n  }\n}\n"
       ResponseMappingTemplate: $util.parseJson($ctx.result.body).output
+  GetStudentCoursesResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+        - AppSyncApi
+        - ApiId
+      TypeName: Mutation
+      FieldName: getStudentCourses
+      DataSourceName:
+        Fn::GetAtt:
+        - AppSyncTableDataSource
+        - Name
+      RequestMappingTemplate: "{\n  \"version\": \"2018-05-29\",\n  \"method\": \"\
+        POST\",\n  \"resourcePath\": \"/\",\n  \"params\": {\n    \"headers\": {\n\
+        \      \"content-type\": \"application/x-amz-json-1.0\",\n      \"x-amz-target\"\
+        :\"AWSStepFunctions.StartSyncExecution\"\n    },\n    \"body\": {\n      \"\
+        stateMachineArn\": \"${MapResolverStateMachine}\",\n      \"input\": \"{ \\\
+        \"dni\\\": $util.escapeJavaScript($util.toJson($ctx.args.dni))}\"\n    }\n\
+        \  }\n}\n"
+      ResponseMappingTemplate: $ctx.result.body
   StoreSettingsResolver:
     Type: AWS::AppSync::Resolver
     DependsOn: AppSyncSchema
@@ -354,6 +381,12 @@ Resources:
       LogGroupName:
         Fn::Sub: /aws/vendedlogs/states/${AWS::StackName}/sum-age
       RetentionInDays: 3
+  MapResolverLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/vendedlogs/states/${AWS::StackName}/map-resolver
+      RetentionInDays: 3
   SumAgeStateMachine:
     Type: AWS::Serverless::StateMachine
     Properties:
@@ -388,6 +421,33 @@ Resources:
           TableName:
             Ref: DB
       - CloudWatchLogsFullAccess
+  MapResolverStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Type: EXPRESS
+      Name: mapResolverStateMachine
+      DefinitionUri: ../../statemachines/map-resolver.asl.json
+      DefinitionSubstitutions:
+        DDBUpdateItem:
+          Fn::Sub: arn:${AWS::Partition}:states:::dynamodb:updateItem
+        DDBGetItem:
+          Fn::Sub: arn:${AWS::Partition}:states:::dynamodb:getItem
+        TableName:
+          Ref: DB
+      Logging:
+        Destinations:
+        - CloudWatchLogsLogGroup:
+            LogGroupArn:
+              Fn::GetAtt:
+              - MapResolverLogs
+              - Arn
+        IncludeExecutionData: true
+        Level: ALL
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: DB
+      - CloudWatchLogsFullAccess
   DB:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -415,6 +475,16 @@ Resources:
       - AWSLambdaBasicExecutionRole
     Metadata:
       SamResourceId: SumAgeFunction
+  CheckEmailUserTypeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: CheckEmailUserTypeFunction
+      Handler: handler
+      Runtime: go1.x
+      Policies:
+      - AWSLambdaBasicExecutionRole
+    Metadata:
+      SamResourceId: CheckEmailUserTypeFunction
 Outputs:
   APIKey:
     Description: API Key

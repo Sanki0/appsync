@@ -3,6 +3,7 @@ type Student{
   dni: String!,
   address: String,
   age: Int
+  courses: [Course]
 }
 
 input StudentInput {
@@ -10,14 +11,25 @@ input StudentInput {
   dni: String!,
   address: String,
   age: Int
+  courses: [CourseInput]
 }
 
 type StudentsOutput{
   students:[Student]
 }
 
-type Execution{
-  output: String!,
+type Course{
+  name: String
+  id: Int
+}
+
+input CourseInput{
+  name: String
+  id: Int
+}
+
+type CourseOutput{
+  courses: [Course]
 }
 
 type Option {
@@ -267,6 +279,7 @@ type Query{
  
   getStudent(dni: String!): Student,
 
+
 }
 
 type Mutation{
@@ -281,5 +294,8 @@ type Mutation{
   storeSettings(settings:SettingsOBInput!): SettingsOB
   # editar configuraciones OnBoarding
   updateSettingOB(settings:UpdateSettingOBInput!): SettingsOB
+
+  getStudentCourses(dni: String): CourseOutput
+
 }
 
