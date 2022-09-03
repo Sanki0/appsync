@@ -19,4 +19,13 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["CheckEmailUserTypeFunction"]
 
+[function_build_definitions.cecc8f3b-695a-4055-b2be-d599209ac1d2]
+codeuri = "/home/sanki0/Documents/pruebas-sanki0/functions/copy-courses"
+runtime = "go1.x"
+architecture = "x86_64"
+handler = "copy-courses"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["CopyCoursesFunction"]
+
 [layer_build_definitions]

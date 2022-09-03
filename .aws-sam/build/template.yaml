@@ -479,12 +479,28 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: CheckEmailUserTypeFunction
-      Handler: handler
+      Handler: ofvi-check-email-usertype
       Runtime: go1.x
       Policies:
       - AWSLambdaBasicExecutionRole
     Metadata:
       SamResourceId: CheckEmailUserTypeFunction
+  CopyCoursesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: CopyCoursesFunction
+      Handler: copy-courses
+      Runtime: go1.x
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: DB
+      Environment:
+        Variables:
+          DB:
+            Ref: DB
+    Metadata:
+      SamResourceId: CopyCoursesFunction
 Outputs:
   APIKey:
     Description: API Key

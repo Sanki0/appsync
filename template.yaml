@@ -565,6 +565,19 @@ Resources:
       Policies:
         - AWSLambdaBasicExecutionRole
 
+  CopyCoursesFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      CodeUri: functions/copy-courses
+      Handler: copy-courses
+      Runtime: go1.x
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DB
+      Environment:
+        Variables:
+          DB: !Ref DB
+
 
 
 Outputs:
