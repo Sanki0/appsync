@@ -16,6 +16,7 @@ input StudentInput {
 
 type StudentsOutput{
   students:[Student]
+  nextToken: String
 }
 
 type Course{
@@ -279,7 +280,7 @@ type Query{
  
   getStudent(dni: String!): Student,
 
-
+  filterStudent(limit: Int, nextToken: String): StudentsOutput
 }
 
 type Mutation{

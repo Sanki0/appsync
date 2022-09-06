@@ -232,6 +232,36 @@ Resources:
         \        \"address\": $util.toJson($item['address']),\n                  \
         \  \"age\": $util.toJson($item['age'])\n                }#if($foreach.hasNext),#end\n\
         \                #end\n            ]\n}\n"
+  FilterStudentResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+        - AppSyncApi
+        - ApiId
+      TypeName: Query
+      FieldName: filterStudent
+      DataSourceName:
+        Fn::GetAtt:
+        - AppSyncTableDataSource
+        - Name
+      RequestMappingTemplate: "{\n  \"version\": \"2017-02-28\",\n  \"operation\"\
+        : \"Query\",\n  \"query\": {\n    \"expression\": \"id = :id\",\n    \"expressionValues\"\
+        :\t{              \n\t    \":id\" : $util.dynamodb.toDynamoDBJson(\"STUDENT\"\
+        )\n    }\n  },\n  \"filter\" : {\n    \"expression\" : \"#name = :name\",\n\
+        \    \"expressionNames\" : {\n        \"#name\" : \"name\"\n      }, \n  \
+        \  \"expressionValues\" : {\n        \":name\" : $util.dynamodb.toDynamoDBJson(\"\
+        sanki0\")\n    }\n  },\n  #if( $context.args.nextToken ) \"nextToken\": \"\
+        $context.args.nextToken\", #end\n  #if( $context.args.limit ) \"limit\" :\
+        \ $context.args.limit #else \"limit\": 5  #end\n}\n"
+      ResponseMappingTemplate: "{\n  \"students\": [\n              #foreach($item\
+        \ in $ctx.result.items)\n                {\n                    \"dni\":$util.toJson($item['dni']),\n\
+        \                    \"name\": $util.toJson($item['name']),\n            \
+        \        \"address\": $util.toJson($item['address']),\n                  \
+        \  \"age\": $util.toJson($item['age'])\n                }#if($foreach.hasNext),#end\n\
+        \                #end\n            ],\n  \"nextToken\": $util.toJson($ctx.result.nextToken)\n\
+        }\n"
   SumAgeStudentResolver:
     Type: AWS::AppSync::Resolver
     Properties:
