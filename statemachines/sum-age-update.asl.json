@@ -1,0 +1,49 @@
+{
+  "Comment": "Sum Age",
+  "StartAt": "Get Student",
+  "States": {
+    "Get Student":{
+      "Type": "Task",
+      "Resource": "${DDBGetItem}",
+      "Parameters": {
+        "TableName": "${TableName}",
+        "Key":{
+          "id":{
+            "S": "STUDENT"
+          },
+          "sort": {
+            "S.$": "$$.Execution.Input.dni"
+          }
+        },
+        "ExpressionAttributeNames":{
+          "#name": "name"
+        },
+        "ProjectionExpression": "#name, dni, age"
+      },
+      "OutputPath": "$.Item",
+      "Next": "Sum Age"
+    },
+    "Sum Age":{
+      "Type": "Task",
+      "Resource": "${SumAgeUpdateFunctionArn}",
+      "Parameters": {
+        "dni.$": "$.dni",
+        "name.$": "$.name",
+        "age.$": "$.age"
+      },
+      "ResultPath":"$.result",
+      "Next": "Parse to Schema"
+    },
+    "Parse to Schema":{
+      "Type": "Pass",
+      "Parameters":{
+        "dni.$": "$.dni.S",
+        "name.$": "$.name.S",
+        "age.$": "$.age.N"
+      } ,
+      "End": true
+    }
+
+  }
+
+}

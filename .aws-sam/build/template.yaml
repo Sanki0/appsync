@@ -26,6 +26,7 @@ Resources:
             - states:StartSyncExecution
             Resource:
             - Ref: SumAgeStateMachine
+            - Ref: SumAgeUpdateStateMachine
             - Ref: MapResolverStateMachine
           - Effect: Allow
             Action:
@@ -252,6 +253,27 @@ Resources:
           ,\n      \"input\": \"{ \\\"dni\\\": $util.escapeJavaScript($util.toJson($ctx.args.dni))}\"\
           \n    }\n  }\n}\n"
       ResponseMappingTemplate: $util.parseJson($ctx.result.body).output
+  SumAgeUpdateStudentResolver:
+    Type: AWS::AppSync::Resolver
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+        - AppSyncApi
+        - ApiId
+      TypeName: Mutation
+      FieldName: sumAgeUpdateStudent
+      DataSourceName:
+        Fn::GetAtt:
+        - StepFunctionsHttpDataSource
+        - Name
+      RequestMappingTemplate:
+        Fn::Sub: "{\n  \"version\": \"2018-05-29\",\n  \"method\": \"POST\",\n  \"\
+          resourcePath\": \"/\",\n  \"params\": {\n    \"headers\": {\n      \"content-type\"\
+          : \"application/x-amz-json-1.0\",\n      \"x-amz-target\":\"AWSStepFunctions.StartSyncExecution\"\
+          \n    },\n    \"body\": {\n      \"stateMachineArn\": \"${SumAgeUpdateStateMachine}\"\
+          ,\n      \"input\": \"{ \\\"dni\\\": $util.escapeJavaScript($util.toJson($ctx.args.dni))}\"\
+          \n    }\n  }\n}\n"
+      ResponseMappingTemplate: $util.parseJson($ctx.result.body).output
   GetStudentCoursesResolver:
     Type: AWS::AppSync::Resolver
     DependsOn: AppSyncSchema
@@ -381,6 +403,12 @@ Resources:
       LogGroupName:
         Fn::Sub: /aws/vendedlogs/states/${AWS::StackName}/sum-age
       RetentionInDays: 3
+  SumAgeUpdateLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/vendedlogs/states/${AWS::StackName}/sum-age-update
+      RetentionInDays: 3
   MapResolverLogs:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -417,6 +445,38 @@ Resources:
       - LambdaInvokePolicy:
           FunctionName:
             Ref: SumAgeFunction
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: DB
+      - CloudWatchLogsFullAccess
+  SumAgeUpdateStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Type: EXPRESS
+      Name: sumAgeUpdateStateMachine
+      DefinitionUri: ../../statemachines/sum-age-update.asl.json
+      DefinitionSubstitutions:
+        DDBGetItem:
+          Fn::Sub: arn:${AWS::Partition}:states:::dynamodb:getItem
+        TableName:
+          Ref: DB
+        SumAgeUpdateFunctionArn:
+          Fn::GetAtt:
+          - SumAgeUpdateFunction
+          - Arn
+      Logging:
+        Destinations:
+        - CloudWatchLogsLogGroup:
+            LogGroupArn:
+              Fn::GetAtt:
+              - SumAgeUpdateLogs
+              - Arn
+        IncludeExecutionData: true
+        Level: ALL
+      Policies:
+      - LambdaInvokePolicy:
+          FunctionName:
+            Ref: SumAgeUpdateFunction
       - DynamoDBCrudPolicy:
           TableName:
             Ref: DB
@@ -475,6 +535,24 @@ Resources:
       - AWSLambdaBasicExecutionRole
     Metadata:
       SamResourceId: SumAgeFunction
+  SumAgeUpdateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: SumAgeUpdateFunction
+      Handler: sum-age-update
+      Runtime: go1.x
+      MemorySize: 128
+      Timeout: 5
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: DB
+      Environment:
+        Variables:
+          DB:
+            Ref: DB
+    Metadata:
+      SamResourceId: SumAgeUpdateFunction
   CheckEmailUserTypeFunction:
     Type: AWS::Serverless::Function
     Properties:

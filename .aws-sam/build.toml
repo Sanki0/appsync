@@ -28,4 +28,13 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["CopyCoursesFunction"]
 
+[function_build_definitions.70f65b44-3b87-4fae-8c86-046ea5052ca0]
+codeuri = "/home/sanki0/Documents/pruebas-sanki0/functions/sum-age-update"
+runtime = "go1.x"
+architecture = "x86_64"
+handler = "sum-age-update"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["SumAgeUpdateFunction"]
+
 [layer_build_definitions]
