@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
@@ -21,9 +20,9 @@ type DynamoInt struct {
 }
 
 type StudentInput struct {
-	Name DynamoString `json:"name"`
-	Dni  DynamoString `json:"dni"`
-	Age  DynamoInt    `json:"age"`
+	Name string `json:"name"`
+	Dni  string `json:"dni"`
+	Age  int    `json:"age"`
 }
 
 type Student struct {
@@ -35,13 +34,6 @@ type Student struct {
 	// Courses []Course `json:"courses"`
 }
 
-func sumAge(age int) int {
-
-	ageDiff := age + 10
-	return ageDiff
-
-}
-
 func handler(ctx context.Context, event StudentInput) (string, error) {
 	TABLE_NAME := os.Getenv("DB")
 
@@ -51,17 +43,17 @@ func handler(ctx context.Context, event StudentInput) (string, error) {
 	}
 
 	svc := dynamodb.New(sess)
-	intAge, _ := strconv.Atoi(event.Age.N)
+	// intAge, _ := strconv.Atoi(event.Age)
 
-	student := Student{
+	student := &Student{
 		Id:   "STUDENT",
-		Sort: event.Dni.S,
-		Name: event.Name.S,
-		Dni:  event.Dni.S,
-		Age:  sumAge(intAge),
+		Sort: event.Dni,
+		Name: event.Name,
+		Dni:  event.Dni,
+		Age:  event.Age,
 	}
 
-	item, err := dynamodbattribute.MarshalMap(student)
+	item, err := MarshalMap(student)
 	if err != nil {
 		fmt.Println("error on marshal")
 
@@ -81,6 +73,21 @@ func handler(ctx context.Context, event StudentInput) (string, error) {
 
 	str := student.Name
 	return str, nil
+}
+
+func MarshalMap(in interface{}) (map[string]*dynamodb.AttributeValue, error) {
+	av, err := getEncoder().Encode(in)
+	if err != nil || av == nil || av.M == nil {
+		return map[string]*dynamodb.AttributeValue{}, err
+	}
+
+	return av.M, nil
+}
+
+func getEncoder() *dynamodbattribute.Encoder {
+	encoder := dynamodbattribute.NewEncoder()
+	encoder.NullEmptyString = false
+	return encoder
 }
 
 func main() {

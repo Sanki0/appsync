@@ -301,8 +301,9 @@ Resources:
           resourcePath\": \"/\",\n  \"params\": {\n    \"headers\": {\n      \"content-type\"\
           : \"application/x-amz-json-1.0\",\n      \"x-amz-target\":\"AWSStepFunctions.StartSyncExecution\"\
           \n    },\n    \"body\": {\n      \"stateMachineArn\": \"${SumAgeUpdateStateMachine}\"\
-          ,\n      \"input\": \"{ \\\"dni\\\": $util.escapeJavaScript($util.toJson($ctx.args.dni))}\"\
-          \n    }\n  }\n}\n"
+          ,\n      \"input\": \"{ \\\"dni\\\": $util.escapeJavaScript($util.toJson($ctx.args.dni)),\
+          \  \\\"age\\\": $util.escapeJavaScript($util.toJson($ctx.args.age))}\"\n\
+          \    }\n  }\n}\n"
       ResponseMappingTemplate: $util.parseJson($ctx.result.body).output
   GetStudentCoursesResolver:
     Type: AWS::AppSync::Resolver

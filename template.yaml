@@ -361,7 +361,7 @@ Resources:
             },
             "body": {
               "stateMachineArn": "${SumAgeUpdateStateMachine}",
-              "input": "{ \"dni\": $util.escapeJavaScript($util.toJson($ctx.args.dni))}"
+              "input": "{ \"dni\": $util.escapeJavaScript($util.toJson($ctx.args.dni)),  \"age\": $util.escapeJavaScript($util.toJson($ctx.args.age))}"
             }
           }
         }

@@ -292,7 +292,7 @@ type Mutation{
 
   sumAgeStudent(dni: String!): Student,
 
-  sumAgeUpdateStudent(dni: String!): Student,
+  sumAgeUpdateStudent(dni: String!, age: Int): Student,
 
   storeSettings(settings:SettingsOBInput!): SettingsOB
   # editar configuraciones OnBoarding

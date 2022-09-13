@@ -27,9 +27,9 @@
       "Type": "Task",
       "Resource": "${SumAgeUpdateFunctionArn}",
       "Parameters": {
-        "dni.$": "$.dni",
-        "name.$": "$.name",
-        "age.$": "$.age"
+        "dni.$": "$.dni.S",
+        "name": "",
+        "age.$": "$$.Execution.Input.age"
       },
       "ResultPath":"$.result",
       "Next": "Parse to Schema"
@@ -38,7 +38,7 @@
       "Type": "Pass",
       "Parameters":{
         "dni.$": "$.dni.S",
-        "name.$": "$.name.S",
+        "name": "",
         "age.$": "$.age.N"
       } ,
       "End": true
