@@ -440,7 +440,7 @@ Resources:
     Properties:
       ApiId: !GetAtt AppSyncApi.ApiId
       TypeName: Mutation
-      FieldName: updateSettingOB
+      FieldName: updateSettings
       DataSourceName: !GetAtt AppSyncTableDataSource.Name
       RequestMappingTemplate: >
         #if($util.isNull($ctx.args.settings.homeOffice))
@@ -456,7 +456,7 @@ Resources:
                 "sort" : $util.dynamodb.toDynamoDBJson("SETTINGS")
             },
             "update" : {
-            "expression" : "set #name=:name, docType=:docType, dni=:dni, gender=:gender, birthDate=:birthDate, countryOfBirth=:countryOfBirth, personalEmail=:personalEmail, maritalStatus=:maritalStatus, personalPhone=:personalPhone, countryOfResidence=:countryOfResidence, residenceDepartment=:residenceDepartment, address=:address, area=:area, subArea=:subArea, workerType=:workerType, entryDate=:entryDate, phone=:phone, apps=:apps, menu=:menu, processes=:processes, #if(!$util.isNullOrEmpty($ctx.args.settings.role)) #role=:role,#end #if(!$util.isNullOrEmpty($ctx.args.settings.officeRole)) officeRole=:officeRole,#end #if(!$util.isNullOrEmpty($ctx.args.settings.boss)) boss=:boss,#end #if(!$util.isNullOrEmpty($ctx.args.settings.bossName)) bossName=:bossName,#end #backup=:backup, backupName=:backupName, days=:days, homeOffice=:homeOffice",
+            "expression" : "set #name=:name, docType=:docType, dni=:dni, gender=:gender, birthDate=:birthDate, countryOfBirth=:countryOfBirth, personalEmail=:personalEmail, maritalStatus=:maritalStatus, personalPhone=:personalPhone, countryOfResidence=:countryOfResidence, residenceDepartment=:residenceDepartment, address=:address, area=:area, subArea=:subArea, workerType=:workerType, entryDate=:entryDate, phone=:phone, #if(!$util.isNullOrEmpty($ctx.args.settings.apps)) apps=:apps,#end menu=:menu, processes=:processes, #if(!$util.isNullOrEmpty($ctx.args.settings.role)) #role=:role,#end #if(!$util.isNullOrEmpty($ctx.args.settings.officeRole)) officeRole=:officeRole,#end #if(!$util.isNullOrEmpty($ctx.args.settings.boss)) boss=:boss,#end #if(!$util.isNullOrEmpty($ctx.args.settings.bossName)) bossName=:bossName,#end #backup=:backup, backupName=:backupName, days=:days, homeOffice=:homeOffice",
             "expressionNames" : {
                 "#name": "name",
                 #if(!$util.isNullOrEmpty($ctx.args.settings.role))
@@ -482,7 +482,9 @@ Resources:
                 ":workerType" : $utils.dynamodb.toDynamoDBJson($util.defaultIfNullOrEmpty($ctx.args.settings.workerType, "")),
                 ":entryDate" : $utils.dynamodb.toDynamoDBJson($ctx.args.settings.entryDate),
                 ":phone" : $utils.dynamodb.toDynamoDBJson($util.defaultIfNullOrEmpty($ctx.args.settings.phone, "")),
-                ":apps" : $utils.dynamodb.toDynamoDBJson($ctx.args.settings.apps),
+
+                ":apps": $utils.dynamodb.toDynamoDBJson($ctx.args.settings.apps),
+
                 ":menu" : $utils.dynamodb.toDynamoDBJson($ctx.args.settings.menu),
                 ":processes" : $utils.dynamodb.toDynamoDBJson($ctx.args.settings.processes),
                 #if(!$util.isNullOrEmpty($ctx.args.settings.role))
@@ -506,9 +508,27 @@ Resources:
         }
       ResponseMappingTemplate: >
         {
+
+          "apps": $util.toJson($ctx.result.apps), 
+          "menu": $util.toJson($ctx.result.menu), 
+          "processes": $util.toJson($ctx.result.processes), 
+          "photo": $util.toJson($ctx.result.photo), 
           "name": $util.toJson($ctx.result.name), 
-          "docType": $util.toJson($ctx.result.docType), 
           "dni": $util.toJson($ctx.result.dni), 
+          "docType": $util.toJson($ctx.result.docType), 
+          "email": $util.toJson($ctx.result.email),
+          "phone": $util.toJson($ctx.result.phone),
+          "area": $util.toJson($ctx.result.area), 
+          "subArea": $util.toJson($ctx.result.subArea), 
+          "days": $util.toJson($ctx.result.days), 
+          "homeOffice": $util.toJson($ctx.result.homeOffice),
+          "role": $util.toJson($ctx.result.role), 
+          "officeRole": $util.toJson($ctx.result.officeRole), 
+          "boss": $util.toJson($ctx.result.boss), 
+          "bossName": $util.toJson($ctx.result.bossName),
+          "backup": $util.toJson($ctx.result.backup), 
+          "backupName": $util.toJson($ctx.result.backupName), 
+          "user": $util.toJson($ctx.result.user), 
           "gender": $util.toJson($ctx.result.gender), 
           "birthDate": $util.toJson($ctx.result.birthDate), 
           "countryOfBirth": $util.toJson($ctx.result.countryOfBirth), 
@@ -518,22 +538,12 @@ Resources:
           "countryOfResidence": $util.toJson($ctx.result.countryOfResidence), 
           "residenceDepartment": $util.toJson($ctx.result.residenceDepartment), 
           "address": $util.toJson($ctx.result.address), 
-          "area": $util.toJson($ctx.result.area), 
-          "subArea": $util.toJson($ctx.result.subArea), 
           "workerType": $util.toJson($ctx.result.workerType), 
           "entryDate": $util.toJson($ctx.result.entryDate),
-          "phone": $util.toJson($ctx.result.phone), 
-          "apps": $util.toJson($ctx.result.apps), 
-          "menu": $util.toJson($ctx.result.menu), 
-          "processes": $util.toJson($ctx.result.processes), 
-          "role": $util.toJson($ctx.result.role), 
-          "officeRole": $util.toJson($ctx.result.officeRole), 
-          "boss": $util.toJson($ctx.result.boss), 
-          "bossName": $util.toJson($ctx.result.bossName),
-          "backup": $util.toJson($ctx.result.backup), 
-          "backupName": $util.toJson($ctx.result.backupName), 
-          "days": $util.toJson($ctx.result.days), 
-          "homeOffice": $util.toJson($ctx.result.homeOffice)
+          "lastSessionDate": $util.toJson($ctx.result.lastSessionDate),
+          "creationDate": $util.toJson($ctx.result.creationDate),
+          "userStatus": $util.toJson($ctx.result.userStatus),
+          "userType": $util.toJson($ctx.result.userType)
         }
 
 

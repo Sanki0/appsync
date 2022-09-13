@@ -136,7 +136,7 @@ type Settings {
 }
 
 #Pendiente enum de estados
-enum UserState{
+enum UserStatus{
   ACTIVE,
   BLOCKED,
   ARCHIVED,
@@ -301,9 +301,9 @@ type Mutation{
 
   sumAgeUpdateStudent(dni: String!, age: Int): Student,
 
-  storeSettings(settings:SettingsOBInput!): SettingsOB
+  storeSettings(settings:SettingsInput!): Settings
   # editar configuraciones OnBoarding
-  updateSettingOB(settings:UpdateSettingOBInput!): SettingsOB
+  updateSettings(settings:UpdateSettingInput!): Settings
 
   getStudentCourses(dni: String): CourseOutput
 
