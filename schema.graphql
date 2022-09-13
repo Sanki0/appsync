@@ -55,80 +55,86 @@ input OptionInput {
   active: Boolean!
 }
 
-type SettingsOB {
-  # Aplicaciones
-  apps:[Option],
-  # Opciones del menu
-  menu: [Option]!,
-  # Procesos
-  processes:[Option]!,
-  # foto
-  photo: String,
-  # nombre completo
-  name: String!,
-  # numero de documento
-  dni: String!,
-  # tipo de documento
-  docType: String!,
-  # email 		?? Email corporativo
-  email: String!,
-  # telefono		?? Telefono corporativo
-  phone: String!,
-  # departamento o area
-  area: String,
-  # subdepartamento o subarea
-  subArea: String,
-  # dias permitidos
-  days: Int!,
-  # dias permitidos de home office
-  homeOffice: Int,
-  # rol
-  role: String,
-  # jefe
-  boss: String,
-  # nombre del jefe
-  bossName: String,
-  # backup
-  backup: String,
-  # nombre del backup
-  backupName: String,
-  # usuario
-  user: String,
-  
-  ### New Attributes
-  # Sexo
-  gender: String,
-  # FechaNacimiento
-  dateBirth: String,
-  # Pais de Nacimiento
-  countryBirth: String,
-  # Email Personal,
-  personalEmail: String,
-  # Estado Civil,
-  civilState: String,
-  # Celular Personal
-  personalPhone: String,
-  # Pais de Residencia
-  countryResidence: String,
-  # Departamento de Residencia
-  departmentResidence: String,
-  # Dirección
-  address: String,
-  
-  # Puesto o Cargo
-  jobTitle: String,
-  # Fecha de Ingreso
-  entryDate: String!,
-  # Fecha de Ultima Sesion
-  lastSessionDate: String,
-  # Fecha de Creación de Usuario
-  creationDate: String!,
-  ## Pendiente Fecha de última modificación
-  # Estado de Usuario		Acá Sí
-  userState: UserState!,
-  # Tipo de Usuario
-  userType: String!,
+type OptionOutput{
+  # elementos
+  items: [Option]
+  # proxima pagina
+  nextToken: String
 }
+
+type Settings {
+  # Aplicaciones
+  apps:[Option]
+  # Opciones del menu
+  menu: [Option]!
+  # Procesos
+  processes:[Option]!
+  # foto
+  photo: String
+  # nombre completo
+  name: String!
+  # numero de documento
+  dni: String!
+  # tipo de documento
+  docType: String!
+  # email corporativo
+  email: String!
+  # telefono corporativo
+  phone: String
+  # departamento o area
+  area: String!
+  # subdepartamento o subarea
+  subArea: String!
+  # dias permitidos
+  days: Int!
+  # dias permitidos de home office
+  homeOffice: Int
+  # rol
+  role: String
+  # rol de oficios
+  officeRole: String
+  # jefe
+  boss: String
+  # nombre del jefe
+  bossName: String
+  # backup
+  backup: String
+  # nombre del backup
+  backupName: String
+  # usuario
+  user: String
+  # sexo
+  gender: String
+  # fecha de nacimiento
+  birthDate: String
+  # pais de nacimiento
+  countryOfBirth: String
+  # email personal
+  personalEmail: String
+  # estado civil
+  maritalStatus: String
+  # telefono personal
+  personalPhone: String
+  # pais de residencia
+  countryOfResidence: String
+  # departamento de residencia
+  residenceDepartment: String
+  # dirección
+  address: String
+  # puesto o cargo
+  workerType: String
+  # fecha de ingreso
+  entryDate: String!
+  # fecha de ultima sesion
+  lastSessionDate: String
+  # fecha de creación de usuario
+  creationDate: String!
+  # estado de usuario
+  userStatus: UserStatus!
+  # tipo de usuario
+  userType: String!
+}
+
 #Pendiente enum de estados
 enum UserState{
   ACTIVE,
@@ -137,129 +143,130 @@ enum UserState{
   UNCONFIRMED,
 }
 
-input SettingsOBInput {
-  ###Datos Personales
-  # Nombre Completo
+input SettingsInput {
+  ### Datos Personales
+  # nombre completo
   name: String!
-  # Tipo de documento
+  # tipo de documento
   docType: String!
   # numero de documento
   dni: String!
   # Sexo
   gender: String
-  # FechaNacimiento
+  # Fecha de nacimiento
   birthDate: String
-  # Pais de Nacimiento   !pendiente de revisar
-  countryBirth: String
-  # Email Personal
-  emailPersonal: String
-  # Estado Civil
-  civilState: String
-  # Celular
-  phonePersonal: String
-  # Pais de Residencia
-  countryResidence: String
-  # Departamento de Residencia
-  departmentResidence: String
-  # Dirección
+  # pais de nacimiento
+  countryOfBirth: String
+  # email personal
+  personalEmail: String
+  # estado civil
+  maritalStatus: String
+  # telefono personal
+  personalPhone: String
+  # pais de residencia
+  countryOfResidence: String
+  # departamento de residencia
+  residenceDepartment: String
+  # dirección
   address: String
-  ###Datos Laborales
-  # departamento o area,
+  ### Datos Laborales
+  # departamento o area
   area: String!
   # subdepartamento o subarea
   subArea: String!
-  # Puesto o Cargo
-  jobTittle: String
-  # Correo Corporativo
+  # puesto o cargo
+  workerType: String
+  # correo corporativo
   email: String!
-  # Fecha de Ingreso
+  # fecha de ingreso
   entryDate: String!
-  # Fecha de Ultima Sesion
-  lastSessionDate: String
-  # Celular Corporativo 
+  # celular corporativo 
   phone: String
-  # Aplicaciones
+  # aplicaciones
   apps:[OptionInput]
-  # Opciones del menu ???	PREGUNTAR QUE ES
+  # ppciones del menu
   menu: [OptionInput]!
-  # Procesos
+  # procesos
   processes:[OptionInput]!
-  # Tipo de Usuario
+  # foto
+  photo: String  
+  # tipo de usuario
   userType: String!
-  ###
-  # Estado de Usuario 		ESTE NO pero sería bueno que estuviera como atributo
-  userState: UserState!
+  ### Otros
   # rol
   role: String
+  # rol de oficios
+  officeRole: String
   # cantidad dias permitidos
-  days: Int!
+  days: Int! 
   # dias permitidos de home office
-  homeOffice: Int
-  ## DUDAAAS
-  # foto
-  photo: String
-  # jefe
+  homeOffice: Int!
+  # jefes
   boss: String
   # nombre del jefe
   bossName: String
   # user
   user: String
+  # backup
+  backup: String!
+  # nombre del backup
+  backupName: String!
 }
 
-input UpdateSettingOBInput {
-  ###Datos Personales
+input UpdateSettingInput {
+  # id del usuario
+  user: String!
+  ### Datos Personales
   # nombre completo
   name: String!
   # Tipo de documento
   docType: String!
   # numero de documeto
   dni: String!
-  # Sexo
+  # sexo
   gender: String
-  # FechaNacimiento
+  # fecha de nacimiento
   birthDate: String
-  # Pais de Nacimiento
-  countryBirth: String
-  # Email Personal
-  emailPersonal: String
-  # Estado Civil
-  civilState: String
-  # Celular
-  phonePersonal: String
-  # Pais de Residencia
-  countryResidence: String
-  # Departamento de Residencia
-  departmentResidence: String
-  # Dirección
+  # pais de nacimiento
+  countryOfBirth: String
+  # email personal
+  personalEmail: String
+  # estado civil
+  maritalStatus: String
+  # telefono personal
+  personalPhone: String
+  # pais de residencia
+  countryOfResidence: String
+  # departamento de residencia
+  residenceDepartment: String
+  # dirección
   address: String
-  ###Datos Laborales
+  ### Datos Laborales
   # departamento o area
   area: String!
   # subdepartamento o subarea
   subArea: String!
-  # Puesto o Cargo
-  jobTitle: String
-  # Fecha de Ingreso
+  # puesto o cargo
+  workerType: String
+  # fecha de ingreso
   entryDate: String! 
-  # Fecha de Ultima Sesion
-  lastSessionDate: String
-  # Celular Corporativo 
+  # telefono corporativo 
   phone: String
-  # Aplicaciones
-  apps:[OptionInput]      #NO SE CAMBIA ??
-  # Opciones del menu ???
-  menu: [OptionInput]!     #NO SE CAMBIA ??
-  # Procesos
-  processes:[OptionInput]!   #NO SE CAMBIA ??
-  ###
+  # aplicaciones
+  apps:[OptionInput]
+  # opciones del menu
+  menu: [OptionInput]!
+  # procesos
+  processes:[OptionInput]
+  ### Otros
   # rol
   role: String
+  # rol de oficios
+  officeRole: String
   # jefe
   boss: String
   # nombre del jefe
   bossName: String
-  # usuario
-  user: String
   # backup
   backup: String
   # nombre del backup
