@@ -908,6 +908,27 @@ Resources:
         Variables:
           DB: !Ref DB
 
+  GetInvitationMailTemplateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/get-invitation-mail-template
+      Handler: ofvi-get-invitation-mail-template
+      Runtime: go1.x
+      Environment:
+        Variables:
+          REGION: !Sub ${AWS::Region}
+          BucketName: !Ref TemplateBucket
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - S3ReadPolicy:
+            BucketName: !Ref TemplateBucket
+
+
+ ######################
+ ## Amazon S3 bucket ##
+ ######################
+  TemplateBucket:
+    Type: AWS::S3::Bucket
 
 
 Outputs:

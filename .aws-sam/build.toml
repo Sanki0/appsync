@@ -46,4 +46,13 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["GetAllUsersFunction"]
 
+[function_build_definitions.afd4954c-b24e-42c4-a295-f8aeb01f0c88]
+codeuri = "/home/sanki0/Documents/pruebas-sanki0/functions/get-invitation-mail-template"
+runtime = "go1.x"
+architecture = "x86_64"
+handler = "ofvi-get-invitation-mail-template"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["GetInvitationMailTemplateFunction"]
+
 [layer_build_definitions]

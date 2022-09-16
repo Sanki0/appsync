@@ -684,6 +684,27 @@ Resources:
             Ref: DB
     Metadata:
       SamResourceId: GetAllUsersFunction
+  GetInvitationMailTemplateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: GetInvitationMailTemplateFunction
+      Handler: ofvi-get-invitation-mail-template
+      Runtime: go1.x
+      Environment:
+        Variables:
+          REGION:
+            Fn::Sub: ${AWS::Region}
+          BucketName:
+            Ref: TemplateBucket
+      Policies:
+      - AWSLambdaBasicExecutionRole
+      - S3ReadPolicy:
+          BucketName:
+            Ref: TemplateBucket
+    Metadata:
+      SamResourceId: GetInvitationMailTemplateFunction
+  TemplateBucket:
+    Type: AWS::S3::Bucket
 Outputs:
   APIKey:
     Description: API Key
