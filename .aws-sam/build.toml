@@ -37,4 +37,13 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["CopyCoursesFunction"]
 
+[function_build_definitions.85a2378f-5113-41cc-b151-372886991f2d]
+codeuri = "/home/sanki0/Documents/pruebas-sanki0/functions/get-all-users"
+runtime = "go1.x"
+architecture = "x86_64"
+handler = "get-all-users"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["GetAllUsersFunction"]
+
 [layer_build_definitions]

@@ -42,6 +42,11 @@ Resources:
                   - !Sub 
                     - "${Table}/index/*"
                     - { Table: !GetAtt DB.Arn }
+              - Effect: Allow
+                Action:
+                - lambda:invokeFunction
+                Resource: 
+                  - !GetAtt GetAllUsersFunction.Arn
 
 
 
@@ -95,6 +100,36 @@ Resources:
           AwsIamConfig:
             SigningRegion: !Ref AWS::Region
             SigningServiceName: states
+
+  # GetAllUsers Data Source
+  GetAllUsersDataSource:
+    Type: "AWS::AppSync::DataSource"
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      Name: GetAllUsersDataSource
+      Type: AWS_LAMBDA
+      ServiceRoleArn: !GetAtt AppSyncServiceRole.Arn
+      LambdaConfig:
+        LambdaFunctionArn: !GetAtt GetAllUsersFunction.Arn
+
+  GetAllUsersResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      TypeName: Query
+      FieldName: getAllUsers
+      DataSourceName: !GetAtt GetAllUsersDataSource.Name
+      RequestMappingTemplate: >
+        {
+          "version": "2017-02-28",
+          "operation": "Invoke",
+          "payload": {
+            "process": $utils.toJson($context.args.process)
+          }
+        }
+      ResponseMappingTemplate: $util.toJson($context.result)
+        
 
   # Resolver: Mutation - createStudent
   createStudentResolver:
@@ -546,6 +581,148 @@ Resources:
           "userType": $util.toJson($ctx.result.userType)
         }
 
+  # GetAllUsersResolver:
+  #   Type: AWS::AppSync::Resolver
+  #   DependsOn: AppSyncSchema
+  #   Properties:
+  #     ApiId: !GetAtt AppSyncApi.ApiId
+  #     TypeName: Query
+  #     FieldName: getAllUsers
+  #     DataSourceName: !GetAtt AppSyncTableDataSource.Name
+  #     RequestMappingTemplate: >
+  #       {
+  #         "version" : "2017-02-28",
+  #         "operation" : "Query",    
+  #         "index" : "list-users",      
+  #         "query" : {
+  #           "expression": "sort = :sort",            
+  #           "expressionValues" : {
+  #               ":sort" : $util.dynamodb.toDynamoDBJson("SETTINGS")
+  #           }
+  #         },
+  #         #if( $context.args.nextToken ) "nextToken": "$context.args.nextToken", #end
+  #         "limit" : 500
+  #       }
+  #     ResponseMappingTemplate: >
+  #       {
+  #         "items": [
+  #                       #foreach($item in $ctx.result.items)
+  #                       {
+  #                           "user": $util.toJson($item['id']),
+  #                           "apps": $util.toJson($item['apps']),
+  #                           "menu": $util.toJson($item['menu']),                         
+  #                           "processes": $util.toJson($item['processes']),                           
+  #                           "photo": $util.toJson($item['photo']),
+  #                           "name": $util.toJson($item['name']),                           
+  #                           "dni": $util.toJson($item['dni']),                           
+  #                           "docType": $util.toJson($item['docType']),                           
+  #                           "email": $util.toJson($item['email']),                           
+  #                           "phone": $util.toJson($item['phone']),                           
+  #                           "area": $util.toJson($item['area']),                           
+  #                           "subArea": $util.toJson($item['subArea']),                           
+  #                           "days": $util.toJson($item['days']),
+  #                           "homeOffice": $util.toJson($item['homeOffice']),
+  #                           "role": $util.toJson($item['role']),
+  #                           "officeRole": $util.toJson($item['officeRole']),
+  #                           "boss": $util.toJson($item['boss']),                           
+  #                           "bossName": $util.toJson($item['bossName']),
+  #                           "backup": $util.toJson($item['backup']),                           
+  #                           "backupName": $util.toJson($item['backupName']),     
+  #                           "gender": $util.toJson($item['gender']),
+  #                           "birthDate": $util.toJson($item['birthDate']),
+  #                           "countryOfBirth": $util.toJson($item['countryOfBirth']),
+  #                           "personalEmail": $util.toJson($item['personalEmail']),
+  #                           "maritalStatus": $util.toJson($item['maritalStatus']),
+  #                           "personalPhone": $util.toJson($item['personalPhone']),                            
+  #                           "countryOfResidence": $util.toJson($item['countryOfResidence']),
+  #                           "residenceDepartment": $util.toJson($item['residenceDepartment']),
+  #                           "address": $util.toJson($item['address']),
+  #                           "workerType": $util.toJson($item['workerType']),
+  #                           "entryDate": $util.toJson($item['entryDate']),
+  #                           "lastSessionDate": $util.toJson($item['lastSessionDate']),
+  #                           "creationDate": $util.toJson($item['creationDate']),
+  #                           "userStatus": $util.toJson($item['userStatus']),
+  #                           "userType": $util.toJson($item['userType'])
+
+  #                       }#if($foreach.hasNext),#end
+  #                       #end
+  #                    ],
+  #         "nextToken": $util.toJson($ctx.result.nextToken)
+  #       }
+
+  # GetAllUsersPipelineResolver:
+  #   Type: AWS::AppSync::Resolver
+  #   DependsOn: AppSyncSchema
+  #   Properties:
+  #     ApiId: !GetAtt AppSyncApi.ApiId
+  #     TypeName: Query
+  #     FieldName: getAllUsers
+  #     Kind: PIPELINE
+  #     PipelineConfig: 
+  #       Functions:
+  #         - !GetAtt getProcessesFunction.FunctionId
+  #         - !GetAtt getProcessesActiveFunction.FunctionId
+  #     RequestMappingTemplate: >
+  #       $util.qr($context.stash.put("process", $ctx.args.process))
+  #       $util.qr($context.stash.put("nextToken", $ctx.args.nextToken))
+  #       {}
+  #     ResponseMappingTemplate: "$util.toJson($context.result)"
+
+  #  # Function: getProcessesFunction
+  # getProcessesFunction:
+  #   Type: AWS::AppSync::FunctionConfiguration
+  #   DependsOn: AppSyncSchema
+  #   Properties:
+  #     ApiId: !GetAtt AppSyncApi.ApiId
+  #     Name: getProcessesFunction
+  #     DataSourceName: !GetAtt AppSyncTableDataSource.Name
+  #     FunctionVersion: "2018-05-29"
+  #     RequestMappingTemplate: >
+  #       {
+  #         "version" : "2017-02-28",
+  #         "operation" : "Query",    
+  #         "index" : "list-users",      
+  #         "query" : {
+  #           "expression": "sort = :sort",            
+  #           "expressionValues" : {
+  #               ":sort" : $util.dynamodb.toDynamoDBJson("SETTINGS")
+  #           }
+  #         },
+  #       }
+  #     ResponseMappingTemplate: >      
+  #       {
+  #           "items": [
+  #                       #foreach($item in $ctx.result.items)
+  #                       {
+  #                         "$util.toJson($context.result.processes)"
+  #                       }#if($foreach.hasNext),#end
+  #                       #end
+  #                   ],
+  #           "nextToken": $util.toJson($ctx.stash.nextToken)
+  #       }
+
+  #  # Function: getProcessesActiveFunction
+  # getProcessesActiveFunction:
+  #   Type: AWS::AppSync::FunctionConfiguration
+  #   DependsOn: AppSyncSchema
+  #   Properties:
+  #     ApiId: !GetAtt AppSyncApi.ApiId
+  #     Name: getProcessesActiveFunction
+  #     DataSourceName: !GetAtt AppSyncTableDataSource.Name
+  #     FunctionVersion: "2018-05-29"
+  #     RequestMappingTemplate: >
+  #       {
+  #         "version" : "2017-02-28",
+  #         "operation" : "Query",
+  #         "query" : {
+  #           "expression": "sort = :sort",
+  #           "expressionValues" : {
+  #               ":sort" : $util.dynamodb.toDynamoDBJson("SETTINGS")
+  #           }
+  #         },
+  #       }
+  #     ResponseMappingTemplate: $util.toJson($ctx.result.processes)
+
 
  ###############      
  ## LOGS      ##
@@ -658,6 +835,15 @@ Resources:
         - AttributeName: sort
           KeyType: RANGE
       BillingMode: PAY_PER_REQUEST
+      GlobalSecondaryIndexes:
+        - IndexName: list-users
+          KeySchema:
+            - AttributeName: sort
+              KeyType: HASH
+            - AttributeName: id
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
 
 # Functions
   SumAgeFunction:
@@ -701,6 +887,19 @@ Resources:
     Properties:
       CodeUri: functions/copy-courses
       Handler: copy-courses
+      Runtime: go1.x
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DB
+      Environment:
+        Variables:
+          DB: !Ref DB
+
+  GetAllUsersFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      CodeUri: functions/get-all-users
+      Handler: get-all-users
       Runtime: go1.x
       Policies:
         - DynamoDBCrudPolicy:

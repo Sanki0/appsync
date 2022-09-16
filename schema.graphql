@@ -256,7 +256,7 @@ input UpdateSettingInput {
   apps:[OptionInput]
   # opciones del menu
   menu: [OptionInput]!
-  # procesos
+  # procesosSettingsOutput
   processes:[OptionInput]
   ### Otros
   # rol
@@ -277,6 +277,24 @@ input UpdateSettingInput {
   homeOffice: Int!
 }
 
+type SettingsOutput {
+  # elementos
+  items: [Settings2]
+  # proxima pagina
+  nextToken: String
+}
+
+type Settings2{
+  name: String!
+  processes:[Option]!
+  days: Int!
+  boss: String 
+  bossName: String
+  role: String
+  officeRole: String
+}
+
+
 # schema {
 #   query: Query
 #   mutation: Mutation
@@ -288,6 +306,11 @@ type Query{
   getStudent(dni: String!): Student,
 
   filterStudent(limit: Int, nextToken: String): StudentsOutput
+
+  getAllUsers(nextToken: String, process: String): SettingsOutput        # process: SW,OF,null
+
+  getAllUsersNew(nextToken: String, process: String): SettingsOutput        # process: SW,OF,null
+
 }
 
 type Mutation{
