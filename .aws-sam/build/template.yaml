@@ -703,6 +703,25 @@ Resources:
             Ref: TemplateBucket
     Metadata:
       SamResourceId: GetInvitationMailTemplateFunction
+  SendEmailCognitoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: SendEmailCognitoFunction
+      Handler: send-email-cognito
+      Runtime: go1.x
+      Environment:
+        Variables:
+          REGION:
+            Fn::Sub: ${AWS::Region}
+          BucketName:
+            Ref: TemplateBucket
+      Policies:
+      - AWSLambdaBasicExecutionRole
+      - S3ReadPolicy:
+          BucketName:
+            Ref: TemplateBucket
+    Metadata:
+      SamResourceId: SendEmailCognitoFunction
   TemplateBucket:
     Type: AWS::S3::Bucket
 Outputs:

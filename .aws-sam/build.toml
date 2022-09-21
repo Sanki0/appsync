@@ -55,4 +55,13 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["GetInvitationMailTemplateFunction"]
 
+[function_build_definitions.df783c13-1022-4abd-9076-ae198da52e14]
+codeuri = "/home/sanki0/Documents/pruebas-sanki0/functions/send-email-cognito"
+runtime = "go1.x"
+architecture = "x86_64"
+handler = "send-email-cognito"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["SendEmailCognitoFunction"]
+
 [layer_build_definitions]
