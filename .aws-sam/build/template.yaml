@@ -3,6 +3,20 @@ Transform: AWS::Serverless-2016-10-31
 Description: 'pruebas-sanki0
 
   '
+Parameters:
+  SENDER:
+    Description: Ambiente despliegue
+    Type: String
+    Default: sebastian.ferreyra@devmente.com
+  Stage:
+    Description: Ambiente despliegue
+    Type: String
+    Default: dev
+    AllowedValues:
+    - stg
+    - prd
+    - dev
+    - qa
 Resources:
   AppSyncServiceRole:
     Type: AWS::IAM::Role
@@ -25,9 +39,11 @@ Resources:
             Action:
             - states:StartSyncExecution
             Resource:
+            - Ref: StoreSettingsStateMachine
             - Ref: SumAgeStateMachine
             - Ref: SumAgeUpdateStateMachine
             - Ref: MapResolverStateMachine
+            - Ref: SendInvitationStateMachine
           - Effect: Allow
             Action:
             - dynamodb:GetItem
@@ -382,15 +398,16 @@ Resources:
       FieldName: storeSettings
       DataSourceName:
         Fn::GetAtt:
-        - AppSyncTableDataSource
+        - StepFunctionsHttpDataSource
         - Name
-      RequestMappingTemplate: "#if($ctx.args.user!=\"\") \n  #set($user=$ctx.args.settings.user)\n\
-        #else \n  #set($user=$ctx.identity.username)\n#end {\n    \"version\" : \"\
-        2017-02-28\",\n    \"operation\" : \"PutItem\",\n    \"key\" : {\n       \
-        \ \"id\" : $util.dynamodb.toDynamoDBJson($user),\n        \"sort\" : {\"S\"\
-        :\"SETTINGS\"}\n    },\n    \"attributeValues\" : $util.dynamodb.toMapValuesJson($ctx.args.settings)\n\
-        }\n"
-      ResponseMappingTemplate: $util.toJson($ctx.args.settings)
+      RequestMappingTemplate:
+        Fn::Sub: "{\n  \"version\": \"2018-05-29\",\n  \"method\": \"POST\",\n  \"\
+          resourcePath\": \"/\",\n  \"params\": {\n    \"headers\": {\n      \"content-type\"\
+          : \"application/x-amz-json-1.0\",\n      \"x-amz-target\":\"AWSStepFunctions.StartSyncExecution\"\
+          \n    },\n    \"body\": {\n      \"stateMachineArn\": \"${StoreSettingsStateMachine}\"\
+          ,\n      \"input\": \"{ \\\"settings\\\": $util.escapeJavaScript($util.toJson($ctx.args.settings))}\"\
+          \n    }\n  }\n}\n"
+      ResponseMappingTemplate: $ctx.result.body
   UpdateSettingResolver:
     Type: AWS::AppSync::Resolver
     DependsOn: AppSyncSchema
@@ -477,6 +494,18 @@ Resources:
         \  \"lastSessionDate\": $util.toJson($ctx.result.lastSessionDate),\n  \"creationDate\"\
         : $util.toJson($ctx.result.creationDate),\n  \"userStatus\": $util.toJson($ctx.result.userStatus),\n\
         \  \"userType\": $util.toJson($ctx.result.userType)\n}\n"
+  StoreSettingsLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/vendedlogs/states/${AWS::StackName}/store-settings
+      RetentionInDays: 3
+  SendInvitationLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/vendedlogs/states/${AWS::StackName}/send-invitation
+      RetentionInDays: 3
   SumAgeLogs:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -495,6 +524,85 @@ Resources:
       LogGroupName:
         Fn::Sub: /aws/vendedlogs/states/${AWS::StackName}/map-resolver
       RetentionInDays: 3
+  StoreSettingsStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionUri: ../../statemachines/store_settings.asl.json
+      Type: EXPRESS
+      Name: ofvi-store_settings
+      DefinitionSubstitutions:
+        DDBQuery: arn:aws:states:::aws-sdk:dynamodb:query
+        CheckMailUserTypeFunctionArn:
+          Fn::GetAtt:
+          - CheckMailUserTypeFunction
+          - Arn
+        StoreSettingsFunctionArn:
+          Fn::GetAtt:
+          - StoreSettingsFunction
+          - Arn
+        SendInvitationStateMachineArn:
+          Fn::GetAtt:
+          - SendInvitationStateMachine
+          - Arn
+        TableName:
+          Ref: DB
+      Logging:
+        Destinations:
+        - CloudWatchLogsLogGroup:
+            LogGroupArn:
+              Fn::GetAtt:
+              - StoreSettingsLogs
+              - Arn
+        IncludeExecutionData: true
+        Level: ALL
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: DB
+      - LambdaInvokePolicy:
+          FunctionName:
+            Ref: StoreSettingsFunction
+      - StepFunctionsExecutionPolicy:
+          StateMachineName:
+            Fn::GetAtt:
+            - SendInvitationStateMachine
+            - Name
+      - LambdaInvokePolicy:
+          FunctionName:
+            Ref: CheckMailUserTypeFunction
+      - CloudWatchLogsFullAccess
+  SendInvitationStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionUri: ../../statemachines/send-invitation.asl.json
+      Type: EXPRESS
+      Name: ofvi-send-invitation
+      DefinitionSubstitutions:
+        GetInvitationMailTemplateFunctionArn:
+          Fn::GetAtt:
+          - GetInvitationMailTemplateFunction
+          - Arn
+        SendInvitationMailFunctionArn:
+          Fn::GetAtt:
+          - SendInvitationMailFunction
+          - Arn
+      Logging:
+        Destinations:
+        - CloudWatchLogsLogGroup:
+            LogGroupArn:
+              Fn::GetAtt:
+              - SendInvitationLogs
+              - Arn
+        IncludeExecutionData: true
+        Level: ALL
+      Policies:
+      - LambdaInvokePolicy:
+          FunctionName:
+            Ref: GetInvitationMailTemplateFunction
+      - LambdaInvokePolicy:
+          FunctionName:
+            Ref: SendInvitationMailFunction
+      - CloudWatchLogsFullAccess
   SumAgeStateMachine:
     Type: AWS::Serverless::StateMachine
     Properties:
@@ -612,6 +720,65 @@ Resources:
           KeyType: RANGE
         Projection:
           ProjectionType: ALL
+  StoreSettingsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: StoreSettingsFunction
+      Handler: ofvi-store-settings
+      Runtime: go1.x
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables:
+          TableName:
+            Ref: DB
+          REGION:
+            Fn::Sub: ${AWS::Region}
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: DB
+      - AWSLambdaBasicExecutionRole
+    Metadata:
+      SamResourceId: StoreSettingsFunction
+  CheckMailUserTypeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: CheckMailUserTypeFunction
+      Handler: ofvi-check-mail-usertype
+      Runtime: go1.x
+      MemorySize: 128
+      Timeout: 5
+      Policies:
+      - AWSLambdaBasicExecutionRole
+    Metadata:
+      SamResourceId: CheckMailUserTypeFunction
+  SendInvitationMailFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: SendInvitationMailFunction
+      Handler: ofvi-send-invitation-mail
+      Runtime: go1.x
+      MemorySize: 128
+      Timeout: 60
+      Environment:
+        Variables:
+          REGION:
+            Fn::Sub: ${AWS::Region}
+          SENDER:
+            Ref: SENDER
+          Stage:
+            Ref: Stage
+      Policies:
+      - AWSLambdaBasicExecutionRole
+      - Statement:
+        - Sid: SESPolicy
+          Effect: Allow
+          Action:
+          - ses:SendEmail
+          Resource: '*'
+    Metadata:
+      SamResourceId: SendInvitationMailFunction
   SumAgeFunction:
     Type: AWS::Serverless::Function
     Properties:

@@ -64,4 +64,31 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["SendEmailCognitoFunction"]
 
+[function_build_definitions.e97e0c78-1af4-4fdc-8012-bc4b3aff751e]
+codeuri = "/home/sanki0/Documents/pruebas-sanki0/functions/store-settings"
+runtime = "go1.x"
+architecture = "x86_64"
+handler = "ofvi-store-settings"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["StoreSettingsFunction"]
+
+[function_build_definitions.a1dee1ac-5d28-4894-89cf-3755d309f5a9]
+codeuri = "/home/sanki0/Documents/pruebas-sanki0/functions/check-mail-usertype"
+runtime = "go1.x"
+architecture = "x86_64"
+handler = "ofvi-check-mail-usertype"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["CheckMailUserTypeFunction"]
+
+[function_build_definitions.edeb63db-2fe5-4370-8bb7-e982ef2d956f]
+codeuri = "/home/sanki0/Documents/pruebas-sanki0/functions/send-invitation-mail"
+runtime = "go1.x"
+architecture = "x86_64"
+handler = "ofvi-send-invitation-mail"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["SendInvitationMailFunction"]
+
 [layer_build_definitions]

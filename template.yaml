@@ -2,6 +2,20 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
   pruebas-sanki0
+Parameters:
+  SENDER:
+    Description: Ambiente despliegue
+    Type: String
+    Default: sebastian.ferreyra@devmente.com  
+  Stage:
+    Description: Ambiente despliegue
+    Type: String
+    Default: dev
+    AllowedValues:       
+      - stg
+      - prd 
+      - dev
+      - qa
 
 Resources:
   AppSyncServiceRole:
@@ -25,9 +39,12 @@ Resources:
                 Action:
                   - states:StartSyncExecution #Type: Express
                 Resource:
+                  - !Ref StoreSettingsStateMachine
                   - !Ref SumAgeStateMachine
                   - !Ref SumAgeUpdateStateMachine
                   - !Ref MapResolverStateMachine
+                  - !Ref SendInvitationStateMachine
+
 
               - Effect: Allow
                 Action:
@@ -450,23 +467,24 @@ Resources:
       ApiId: !GetAtt AppSyncApi.ApiId
       TypeName: Mutation
       FieldName: storeSettings
-      DataSourceName: !GetAtt AppSyncTableDataSource.Name
-      RequestMappingTemplate: >
-        #if($ctx.args.user!="") 
-          #set($user=$ctx.args.settings.user)
-        #else 
-          #set($user=$ctx.identity.username)
-        #end
+      DataSourceName: !GetAtt StepFunctionsHttpDataSource.Name
+      RequestMappingTemplate: !Sub >
         {
-            "version" : "2017-02-28",
-            "operation" : "PutItem",
-            "key" : {
-                "id" : $util.dynamodb.toDynamoDBJson($user),
-                "sort" : {"S":"SETTINGS"}
+          "version": "2018-05-29",
+          "method": "POST",
+          "resourcePath": "/",
+          "params": {
+            "headers": {
+              "content-type": "application/x-amz-json-1.0",
+              "x-amz-target":"AWSStepFunctions.StartSyncExecution"
             },
-            "attributeValues" : $util.dynamodb.toMapValuesJson($ctx.args.settings)
+            "body": {
+              "stateMachineArn": "${StoreSettingsStateMachine}",
+              "input": "{ \"settings\": $util.escapeJavaScript($util.toJson($ctx.args.settings))}"
+            }
+          }
         }
-      ResponseMappingTemplate: $util.toJson($ctx.args.settings)
+      ResponseMappingTemplate: $ctx.result.body
 
   # Resolver: Mutation - updateSetting
   UpdateSettingResolver:
@@ -728,6 +746,18 @@ Resources:
  ## LOGS      ##
  ###############  
 
+  StoreSettingsLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/vendedlogs/states/${AWS::StackName}/store-settings
+      RetentionInDays: 3
+
+  SendInvitationLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/vendedlogs/states/${AWS::StackName}/send-invitation
+      RetentionInDays: 3
+
   SumAgeLogs:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -749,6 +779,57 @@ Resources:
  ###################      
  ## STATEMACHINES ##
  ###################
+  StoreSettingsStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionUri: statemachines/store_settings.asl.json
+      Type: EXPRESS
+      Name: ofvi-store_settings
+      DefinitionSubstitutions:
+        DDBQuery: arn:aws:states:::aws-sdk:dynamodb:query     
+        CheckMailUserTypeFunctionArn : !GetAtt CheckMailUserTypeFunction.Arn              
+        StoreSettingsFunctionArn : !GetAtt StoreSettingsFunction.Arn 
+        SendInvitationStateMachineArn: !GetAtt SendInvitationStateMachine.Arn
+        TableName: !Ref DB
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt StoreSettingsLogs.Arn
+        IncludeExecutionData: true
+        Level: ALL  
+      Policies: 
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DB 
+        - LambdaInvokePolicy:
+            FunctionName: !Ref StoreSettingsFunction
+        - StepFunctionsExecutionPolicy:
+            StateMachineName: !GetAtt SendInvitationStateMachine.Name
+        - LambdaInvokePolicy:
+            FunctionName: !Ref CheckMailUserTypeFunction
+            
+        - CloudWatchLogsFullAccess
+
+  SendInvitationStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionUri: statemachines/send-invitation.asl.json
+      Type: EXPRESS
+      Name: ofvi-send-invitation
+      DefinitionSubstitutions:
+        GetInvitationMailTemplateFunctionArn : !GetAtt GetInvitationMailTemplateFunction.Arn
+        SendInvitationMailFunctionArn : !GetAtt SendInvitationMailFunction.Arn
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt SendInvitationLogs.Arn
+        IncludeExecutionData: true
+        Level: ALL  
+      Policies: 
+        - LambdaInvokePolicy:
+            FunctionName: !Ref GetInvitationMailTemplateFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref SendInvitationMailFunction
+        - CloudWatchLogsFullAccess
 
   SumAgeStateMachine:
     Type: AWS::Serverless::StateMachine
@@ -846,6 +927,57 @@ Resources:
             ProjectionType: ALL
 
 # Functions
+
+  StoreSettingsFunction:         
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/store-settings
+      Handler: ofvi-store-settings
+      Runtime: go1.x
+      MemorySize: 128    
+      Timeout: 5
+      Environment:
+        Variables:
+          TableName: !Ref DB
+          REGION: !Sub ${AWS::Region}
+      Policies: 
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DB
+        - AWSLambdaBasicExecutionRole 
+        
+  CheckMailUserTypeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/check-mail-usertype
+      Handler: ofvi-check-mail-usertype
+      Runtime: go1.x
+      MemorySize: 128    
+      Timeout: 5
+      Policies:
+        - AWSLambdaBasicExecutionRole
+
+  SendInvitationMailFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/send-invitation-mail
+      Handler: ofvi-send-invitation-mail
+      Runtime: go1.x
+      MemorySize: 128    
+      Timeout: 60
+      Environment:
+        Variables:
+          REGION: !Sub ${AWS::Region}
+          SENDER: !Ref SENDER
+          Stage: !Ref Stage
+      Policies:
+        - AWSLambdaBasicExecutionRole   
+        - Statement:
+          - Sid: SESPolicy
+            Effect: Allow
+            Action:
+              - ses:SendEmail
+            Resource: '*' 
+
   SumAgeFunction:
     Type: AWS::Serverless::Function
     Properties:

@@ -1,0 +1,25 @@
+{
+    "Comment": "Send Invitation",
+    "StartAt": "Get Email Template",
+    "States": {
+        "Get Email Template": {
+            "Type": "Task",
+            "Resource": "${GetInvitationMailTemplateFunctionArn}",
+            "Parameters": {
+                "userType.$": "$$.Execution.Input.userType"
+            },
+            "ResultPath": "$",
+            "Next": "Send Email"
+        },
+        "Send Email": {
+            "Type": "Task",
+            "Resource": "${SendInvitationMailFunctionArn}",
+            "Parameters": {
+                "email.$": "$$.Execution.Input.email",
+                "name.$": "$$.Execution.Input.name",
+                "template.$": "$"
+            },
+            "End": true
+        }
+    }
+}

@@ -1,0 +1,105 @@
+{
+    "Comment": "Register User",
+    "StartAt": "Check Email",
+    "States": {
+        "Check Email": {
+            "Type": "Task",
+            "Resource": "${CheckMailUserTypeFunctionArn}",
+            "Parameters": {
+                "userType.$": "$$.Execution.Input.settings.userType",
+                "email.$": "$$.Execution.Input.settings.email"
+            },
+            "ResultPath": "$",
+            "Next": "Valid Email??"
+        },
+        "Valid Email??": {
+            "Type": "Choice",
+            "Choices": [
+                {
+                    "Variable": "$",
+                    "BooleanEquals": true,
+                    "Next": "Get User"
+                }
+            ],
+            "Default": "Error Email Not Valid"
+        },
+        "Get User": {
+            "Type": "Task",
+            "Resource": "${DDBQuery}",
+            "Parameters": {
+                "TableName": "${TableName}",
+                "KeyConditionExpression": "email = :email AND sort = :sort",
+                "IndexName": "email-sort",
+                "ExpressionAttributeValues": {
+                    ":email": {
+                        "S.$": "$$.Execution.Input.settings.email"
+                    },
+                    ":sort": {
+                        "S": "SETTINGS"
+                    }
+                },
+                "ProjectionExpression": "id"
+            },
+            "OutputPath": "$.Count",
+            "Next": "Exist User??"
+        },      
+        "Exist User??": {
+            "Type": "Choice",
+            "Choices": [
+                {
+                    "Variable": "$",
+                    "NumericEquals": 0,
+                    "Next": "Create User"
+                }
+            ],
+            "Default": "Error User Exist"
+        },
+        "Create User": {
+            "Type": "Task",
+            "Resource": "${StoreSettingsFunctionArn}",
+            "Parameters": {
+                "settings.$" : "$$.Execution.Input.settings"
+            },
+            "ResultPath": null,
+            "Next": "Send Invitation"
+        },   
+        "Send Invitation": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::states:startExecution",
+            "Parameters": {
+                "Input":{
+                    "userType.$": "$$.Execution.Input.settings.userType",
+                    "email.$": "$$.Execution.Input.settings.email",
+                    "name.$": "$$.Execution.Input.settings.name"
+                },
+                "StateMachineArn": "${SendInvitationStateMachineArn}",
+                "Name":"SendInvitation"
+            },
+            "ResultPath":null,
+            "Next": "User Registered"
+        },
+        "User Registered": {
+            "Type": "Pass",
+            "Parameters": {
+                "created": true
+            },           
+            "End": true
+        },
+        "Error Email Not Valid": {
+            "Type": "Pass",
+            "Parameters": {
+                "created": false,
+                "error": 1
+            },           
+            "End": true
+        },
+        "Error User Exist": {
+            "Type": "Pass",
+            "Parameters": {
+                "created": false,
+                "error": 2
+            },           
+            "End": true
+        }
+    }
+}
