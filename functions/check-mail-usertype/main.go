@@ -43,7 +43,11 @@ func handler(ctx context.Context, event Event) (bool, error) {
 			return false, nil
 		}
 	case "Usuario Externo":
-		return true, nil
+		if !itemExists(domainsAvailable, domain) {
+			return true, nil
+		} else {
+			return false, nil
+		}
 	default:
 		return false, nil
 
