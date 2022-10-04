@@ -64,6 +64,8 @@ Resources:
                 - lambda:invokeFunction
                 Resource: 
                   - !GetAtt GetAllUsersFunction.Arn
+                  - !GetAtt ResendExternalUserFunction.Arn
+
 
   UserPool:
     Type: "AWS::Cognito::UserPool"
@@ -194,6 +196,37 @@ Resources:
       ServiceRoleArn: !GetAtt AppSyncServiceRole.Arn
       LambdaConfig:
         LambdaFunctionArn: !GetAtt GetAllUsersFunction.Arn
+
+  ResendExternalUserDataSource:
+    Type: "AWS::AppSync::DataSource"
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      Name: ResendExternalUserDataSource
+      Type: AWS_LAMBDA
+      ServiceRoleArn: !GetAtt AppSyncServiceRole.Arn
+      LambdaConfig:
+        LambdaFunctionArn: !GetAtt ResendExternalUserFunction.Arn
+
+
+  # Resolver: Mutation - resendInvitation
+  ResendExternalUserResolver:
+    Type: AWS::AppSync::Resolver
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      TypeName: Mutation
+      FieldName: resendExternalUser
+      DataSourceName: !GetAtt ResendExternalUserDataSource.Name
+      RequestMappingTemplate: !Sub >
+        {
+          "version": "2017-02-28",
+          "operation": "Invoke",
+          "payload": {
+            "email": $utils.toJson($context.args.email)
+          }
+        }
+      ResponseMappingTemplate: $util.toJson($context.result)
+
+
 
   GetAllUsersResolver:
     Type: AWS::AppSync::Resolver
@@ -1172,7 +1205,7 @@ Resources:
               - cognito-idp:UpdateUserAttributes
             Resource: "*"
 
-  ResendExternalUser:
+  ResendExternalUserFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: functions/resend-external-user

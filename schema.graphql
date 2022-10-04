@@ -330,5 +330,8 @@ type Mutation{
 
   getStudentCourses(dni: String): CourseOutput
 
+    # reenviar el correo para usuario externo
+  resendExternalUser(email: String): String
+
 }
 

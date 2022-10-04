@@ -107,7 +107,7 @@ architecture = "x86_64"
 handler = "ofvi-resend-external-user"
 manifest_hash = ""
 packagetype = "Zip"
-functions = ["ResendExternalUser"]
+functions = ["ResendExternalUserFunction"]
 
 [function_build_definitions.c2496a7d-50db-466a-bf17-4fda1c5a4fd3]
 codeuri = "/home/sanki0/Documents/pruebas-sanki0/functions/send-mail"

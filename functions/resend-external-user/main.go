@@ -70,7 +70,7 @@ func (d *deps) handler(ctx context.Context, event Event) (string, error) {
 
 		if err != nil {
 			fmt.Println("Error :", err)
-			return "", err
+			return "Fail", nil
 		}
 		fmt.Println("CLIENTE :", client)
 		fmt.Println("Response :", response)
@@ -107,7 +107,7 @@ func (ctx *awsCognitoClient) ResendAdminCreateUser(email string) (string, error)
 	result, err := ctx.cognitoClient.AdminCreateUser(user)
 	if err != nil {
 		fmt.Println("Error : AdminCreateUser", err)
-		return "", err
+		return "Fail", err
 	}
 	return result.String(), nil
 }

@@ -69,6 +69,9 @@ Resources:
             - Fn::GetAtt:
               - GetAllUsersFunction
               - Arn
+            - Fn::GetAtt:
+              - ResendExternalUserFunction
+              - Arn
   UserPool:
     Type: AWS::Cognito::UserPool
     Description: A Cognito user pool for authenticating users
@@ -217,6 +220,42 @@ Resources:
           Fn::GetAtt:
           - GetAllUsersFunction
           - Arn
+  ResendExternalUserDataSource:
+    Type: AWS::AppSync::DataSource
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+        - AppSyncApi
+        - ApiId
+      Name: ResendInvitationDataSource
+      Type: AWS_LAMBDA
+      ServiceRoleArn:
+        Fn::GetAtt:
+        - AppSyncServiceRole
+        - Arn
+      LambdaConfig:
+        LambdaFunctionArn:
+          Fn::GetAtt:
+          - ResendExternalUserFunction
+          - Arn
+  ResendExternalUserResolver:
+    Type: AWS::AppSync::Resolver
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+        - AppSyncApi
+        - ApiId
+      TypeName: Mutation
+      FieldName: resendExternalUser
+      DataSourceName:
+        Fn::GetAtt:
+        - ResendExternalUserDataSource
+        - Name
+      RequestMappingTemplate:
+        Fn::Sub: "{\n  \"version\": \"2017-02-28\",\n  \"operation\": \"Invoke\",\n\
+          \  \"payload\": {\n    \"email\": $utils.toJson($context.args.email)\n \
+          \ }\n}\n"
+      ResponseMappingTemplate: $util.toJson($context.result)
   GetAllUsersResolver:
     Type: AWS::AppSync::Resolver
     DependsOn: AppSyncSchema
@@ -990,10 +1029,10 @@ Resources:
             Ref: UserPoolClientTest
     Metadata:
       SamResourceId: CreateCognitoUserFunction
-  ResendExternalUser:
+  ResendExternalUserFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ResendExternalUser
+      CodeUri: ResendExternalUserFunction
       Handler: ofvi-resend-external-user
       Runtime: go1.x
       Policies:
@@ -1012,7 +1051,7 @@ Resources:
           APP_CLIENT_ID:
             Ref: UserPoolClientTest
     Metadata:
-      SamResourceId: ResendExternalUser
+      SamResourceId: ResendExternalUserFunction
   SendEmailFunction:
     Type: AWS::Serverless::Function
     Properties:
